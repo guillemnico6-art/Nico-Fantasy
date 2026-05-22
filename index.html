@@ -61,7 +61,7 @@ const fDate=d=>new Date(d).toLocaleDateString("es-ES",{weekday:"short",day:"nume
 const fTime=d=>new Date(d).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
 const started=d=>new Date(d)<=new Date();
 
-const FLAGS={"Argentina":"🇦🇷","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","USA":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Korea Republic":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Cote d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Czech Republic":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Palestine":"🇵🇸","Jordan":"🇯🇴","Iraq":"🇮🇶","Mali":"🇲🇱","Guinea":"🇬🇳","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪"};
+const FLAGS={"Argentina":"🇦🇷","Bosnia and Herzegovina":"🇧🇦","Bosnia":"🇧🇦","Sweden":"🇸🇪","Haiti":"🇭🇹","Turkey":"🇹🇷","Türkiye":"🇹🇷","Curaçao":"🇨🇼","Curacao":"🇨🇼","South Africa":"🇿🇦","Czechia":"🇨🇿","Czech Republic":"🇨🇿","Côte d'Ivoire":"🇨🇮","Ivory Coast":"🇨🇮","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","USA":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Korea Republic":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Cote d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Czech Republic":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Palestine":"🇵🇸","Jordan":"🇯🇴","Iraq":"🇮🇶","Mali":"🇲🇱","Guinea":"🇬🇳","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪"};
 const flag=n=>FLAGS[n]||"⚽";
 
 const STAGE_SHORT={GROUP_STAGE:"Grupos",ROUND_OF_32:"1/16",ROUND_OF_16:"Octavos",QUARTER_FINALS:"Cuartos",SEMI_FINALS:"Semis",THIRD_PLACE:"3er Puesto",FINAL:"Final 🏆"};
@@ -439,20 +439,119 @@ function App(){
     setPreds(await db.get("wc2026_preds")||{});
     const cache=await db.get("wc2026_matches");
     const cacheT=await db.get("wc2026_match_t");
-    if(cache&&cacheT&&Date.now()-cacheT<CACHE_MS)setMatches(cache);
+    // Force refresh if cached matches are empty or too old
+    if(cache&&cacheT&&Date.now()-cacheT<CACHE_MS&&cache.length>0)setMatches(cache);
     else await fetchMatches();
     const splash=document.getElementById("splash");
     if(splash){splash.classList.add("hide");setTimeout(()=>splash.remove(),500);}
     setScreen("login");
   }
 
+
+  function getHardcodedMatches(){
+    const M=(id,group,md,date,home,hShort,away,aShort)=>({
+      id,stage:"GROUP_STAGE",group,matchday:md,
+      utcDate:date,status:"TIMED",
+      homeTeam:{name:home,shortName:hShort},
+      awayTeam:{name:away,shortName:aShort},
+      score:{fullTime:{home:null,away:null},winner:null,duration:null}
+    });
+    return[
+      // ── JORNADA 1 ─────────────────────────────────────────────────
+      M(1,"Group A",1,"2026-06-11T19:00:00Z","Mexico","México","South Africa","Sudáfrica"),
+      M(2,"Group A",1,"2026-06-12T02:00:00Z","South Korea","Corea Sur","Czechia","Chequia"),
+      M(3,"Group B",1,"2026-06-12T19:00:00Z","Canada","Canadá","Bosnia and Herzegovina","Bosnia"),
+      M(4,"Group D",1,"2026-06-13T01:00:00Z","United States","EE.UU.","Paraguay","Paraguay"),
+      M(5,"Group B",1,"2026-06-13T19:00:00Z","Qatar","Qatar","Switzerland","Suiza"),
+      M(6,"Group C",1,"2026-06-13T22:00:00Z","Brazil","Brasil","Morocco","Marruecos"),
+      M(7,"Group C",1,"2026-06-14T01:00:00Z","Haiti","Haití","Scotland","Escocia"),
+      M(8,"Group D",1,"2026-06-14T04:00:00Z","Australia","Australia","Turkey","Turquía"),
+      M(9,"Group E",1,"2026-06-14T17:00:00Z","Germany","Alemania","Curaçao","Curazao"),
+      M(10,"Group F",1,"2026-06-14T20:00:00Z","Netherlands","P.Bajos","Japan","Japón"),
+      M(11,"Group E",1,"2026-06-14T23:00:00Z","Côte d'Ivoire","C.Marfil","Ecuador","Ecuador"),
+      M(12,"Group F",1,"2026-06-15T02:00:00Z","Tunisia","Túnez","Sweden","Suecia"),
+      M(13,"Group H",1,"2026-06-15T16:00:00Z","Spain","España","Cape Verde","Cabo Verde"),
+      M(14,"Group G",1,"2026-06-15T19:00:00Z","Belgium","Bélgica","Egypt","Egipto"),
+      M(15,"Group H",1,"2026-06-15T22:00:00Z","Saudi Arabia","Arabia S.","Uruguay","Uruguay"),
+      M(16,"Group G",1,"2026-06-16T01:00:00Z","Iran","Irán","New Zealand","N.Zelanda"),
+      M(17,"Group I",1,"2026-06-16T19:00:00Z","France","Francia","Senegal","Senegal"),
+      M(18,"Group I",1,"2026-06-16T22:00:00Z","Iraq","Iraq","Norway","Noruega"),
+      M(19,"Group J",1,"2026-06-17T01:00:00Z","Argentina","Argentina","Algeria","Argelia"),
+      M(20,"Group J",1,"2026-06-17T04:00:00Z","Austria","Austria","Jordan","Jordania"),
+      M(21,"Group K",1,"2026-06-17T17:00:00Z","Portugal","Portugal","DR Congo","RD Congo"),
+      M(22,"Group L",1,"2026-06-17T20:00:00Z","England","Inglaterra","Croatia","Croacia"),
+      M(23,"Group L",1,"2026-06-17T23:00:00Z","Ghana","Ghana","Panama","Panamá"),
+      M(24,"Group K",1,"2026-06-18T02:00:00Z","Uzbekistan","Uzbekistán","Colombia","Colombia"),
+      // ── JORNADA 2 ─────────────────────────────────────────────────
+      M(25,"Group A",2,"2026-06-18T16:00:00Z","Czechia","Chequia","South Africa","Sudáfrica"),
+      M(26,"Group B",2,"2026-06-18T19:00:00Z","Switzerland","Suiza","Bosnia and Herzegovina","Bosnia"),
+      M(27,"Group B",2,"2026-06-18T22:00:00Z","Canada","Canadá","Qatar","Qatar"),
+      M(28,"Group A",2,"2026-06-19T01:00:00Z","Mexico","México","South Korea","Corea Sur"),
+      M(29,"Group D",2,"2026-06-19T19:00:00Z","United States","EE.UU.","Australia","Australia"),
+      M(30,"Group C",2,"2026-06-19T19:00:00Z","Scotland","Escocia","Morocco","Marruecos"),
+      M(31,"Group C",2,"2026-06-20T01:00:00Z","Brazil","Brasil","Haiti","Haití"),
+      M(32,"Group D",2,"2026-06-20T04:00:00Z","Turkey","Turquía","Paraguay","Paraguay"),
+      M(33,"Group F",2,"2026-06-20T17:00:00Z","Netherlands","P.Bajos","Sweden","Suecia"),
+      M(34,"Group E",2,"2026-06-20T20:00:00Z","Germany","Alemania","Côte d'Ivoire","C.Marfil"),
+      M(35,"Group E",2,"2026-06-21T00:00:00Z","Ecuador","Ecuador","Curaçao","Curazao"),
+      M(36,"Group F",2,"2026-06-21T04:00:00Z","Tunisia","Túnez","Japan","Japón"),
+      M(37,"Group H",2,"2026-06-21T16:00:00Z","Spain","España","Saudi Arabia","Arabia S."),
+      M(38,"Group G",2,"2026-06-21T19:00:00Z","Belgium","Bélgica","Iran","Irán"),
+      M(39,"Group H",2,"2026-06-21T22:00:00Z","Uruguay","Uruguay","Cape Verde","Cabo Verde"),
+      M(40,"Group G",2,"2026-06-22T01:00:00Z","New Zealand","N.Zelanda","Egypt","Egipto"),
+      M(41,"Group J",2,"2026-06-22T17:00:00Z","Argentina","Argentina","Austria","Austria"),
+      M(42,"Group I",2,"2026-06-22T21:00:00Z","France","Francia","Iraq","Iraq"),
+      M(43,"Group I",2,"2026-06-23T00:00:00Z","Norway","Noruega","Senegal","Senegal"),
+      M(44,"Group J",2,"2026-06-23T03:00:00Z","Jordan","Jordania","Algeria","Argelia"),
+      M(45,"Group K",2,"2026-06-23T17:00:00Z","Portugal","Portugal","Uzbekistan","Uzbekistán"),
+      M(46,"Group L",2,"2026-06-23T20:00:00Z","England","Inglaterra","Ghana","Ghana"),
+      M(47,"Group L",2,"2026-06-23T23:00:00Z","Panama","Panamá","Croatia","Croacia"),
+      M(48,"Group K",2,"2026-06-24T02:00:00Z","Colombia","Colombia","DR Congo","RD Congo"),
+      // ── JORNADA 3 ─────────────────────────────────────────────────
+      M(49,"Group B",3,"2026-06-24T19:00:00Z","Switzerland","Suiza","Canada","Canadá"),
+      M(50,"Group B",3,"2026-06-24T19:00:00Z","Bosnia and Herzegovina","Bosnia","Qatar","Qatar"),
+      M(51,"Group C",3,"2026-06-24T22:00:00Z","Brazil","Brasil","Scotland","Escocia"),
+      M(52,"Group C",3,"2026-06-24T22:00:00Z","Morocco","Marruecos","Haiti","Haití"),
+      M(53,"Group A",3,"2026-06-25T01:00:00Z","Mexico","México","Czechia","Chequia"),
+      M(54,"Group A",3,"2026-06-25T01:00:00Z","South Korea","Corea Sur","South Africa","Sudáfrica"),
+      M(55,"Group E",3,"2026-06-25T20:00:00Z","Ecuador","Ecuador","Germany","Alemania"),
+      M(56,"Group E",3,"2026-06-25T20:00:00Z","Curaçao","Curazao","Côte d'Ivoire","C.Marfil"),
+      M(57,"Group F",3,"2026-06-25T23:00:00Z","Tunisia","Túnez","Netherlands","P.Bajos"),
+      M(58,"Group F",3,"2026-06-25T23:00:00Z","Japan","Japón","Sweden","Suecia"),
+      M(59,"Group D",3,"2026-06-26T02:00:00Z","United States","EE.UU.","Turkey","Turquía"),
+      M(60,"Group D",3,"2026-06-26T02:00:00Z","Paraguay","Paraguay","Australia","Australia"),
+      M(61,"Group I",3,"2026-06-26T19:00:00Z","Norway","Noruega","France","Francia"),
+      M(62,"Group I",3,"2026-06-26T19:00:00Z","Senegal","Senegal","Iraq","Iraq"),
+      M(63,"Group H",3,"2026-06-27T00:00:00Z","Uruguay","Uruguay","Spain","España"),
+      M(64,"Group H",3,"2026-06-27T00:00:00Z","Cape Verde","Cabo Verde","Saudi Arabia","Arabia S."),
+      M(65,"Group G",3,"2026-06-27T03:00:00Z","New Zealand","N.Zelanda","Belgium","Bélgica"),
+      M(66,"Group G",3,"2026-06-27T03:00:00Z","Egypt","Egipto","Iran","Irán"),
+      M(67,"Group J",3,"2026-06-27T19:00:00Z","Argentina","Argentina","Jordan","Jordania"),
+      M(68,"Group J",3,"2026-06-27T19:00:00Z","Algeria","Argelia","Austria","Austria"),
+      M(69,"Group K",3,"2026-06-27T22:00:00Z","Portugal","Portugal","Colombia","Colombia"),
+      M(70,"Group K",3,"2026-06-27T22:00:00Z","Uzbekistan","Uzbekistán","DR Congo","RD Congo"),
+      M(71,"Group L",3,"2026-06-28T01:00:00Z","England","Inglaterra","Panama","Panamá"),
+      M(72,"Group L",3,"2026-06-28T01:00:00Z","Croatia","Croacia","Ghana","Ghana"),
+    ];
+  }
+
   async function fetchMatches(){
+    // Try API first, fall back to hardcoded schedule
     try{
       const r=await fetch(`${WC_API}/matches`,{headers:{"X-Auth-Token":API_KEY}});
       if(!r.ok)throw new Error(`${r.status}`);
-      const d=await r.json();const ms=d.matches||[];
-      setMatches(ms);await db.set("wc2026_matches",ms);await db.set("wc2026_match_t",Date.now());
-    }catch(e){console.error("API:",e);}
+      const d=await r.json();
+      const ms=d.matches||[];
+      if(ms.length>0){
+        setMatches(ms);await db.set("wc2026_matches",ms);await db.set("wc2026_match_t",Date.now());
+        return;
+      }
+    }catch(e){console.error("API not available, using hardcoded schedule");}
+    // Use hardcoded schedule
+    const ms=getHardcodedMatches();
+    setMatches(ms);
+    await db.set("wc2026_matches",ms);
+    await db.set("wc2026_match_t",Date.now());
   }
 
   const tournamentStarted=useMemo(()=>{const first=matches.find(m=>m.stage==="GROUP_STAGE");return first?started(first.utcDate):false;},[matches]);
