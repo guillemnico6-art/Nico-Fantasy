@@ -25,7 +25,6 @@
     #splash.hide{opacity:0;pointer-events:none}
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     .spin{animation:spin 1.8s linear infinite;display:inline-block}
-    @media(display-mode:standalone){body{padding-top:env(safe-area-inset-top,0)}}
   </style>
 </head>
 <body>
@@ -39,55 +38,40 @@
 <script type="text/babel">
 const {useState,useEffect,useMemo}=React;
 
-// ── FIREBASE ──────────────────────────────────────────────────────────────────
+// ── FIREBASE ──────────────────────────────────────────────────────────────
 const fbCfg={apiKey:"AIzaSyBY_kKGaYE4xnKcU5xMPnxroYlYcgPobCM",authDomain:"nico-fantasy.firebaseapp.com",databaseURL:"https://nico-fantasy-default-rtdb.europe-west1.firebasedatabase.app",projectId:"nico-fantasy",storageBucket:"nico-fantasy.firebasestorage.app",messagingSenderId:"910045249881",appId:"1:910045249881:web:49571e2e4f51df1d720c48"};
 if(!firebase.apps.length)firebase.initializeApp(fbCfg);
 const rtdb=firebase.database();
 const db={
-  async get(k){try{const s=await rtdb.ref(k).once('value');const v=s.val();return v!==null?JSON.parse(v):null;}catch(e){console.error('get',k,e);return null;}},
-  async set(k,v){try{await rtdb.ref(k).set(JSON.stringify(v));}catch(e){console.error('set',k,e);}}
+  async get(k){try{const s=await rtdb.ref(k).once('value');const v=s.val();return v!==null?JSON.parse(v):null;}catch{return null;}},
+  async set(k,v){try{await rtdb.ref(k).set(JSON.stringify(v));}catch(e){console.error('DB',e);}}
 };
 
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+// ── CONSTANTS ─────────────────────────────────────────────────────────────
+const APP_NAME="Nico Fantasy";
+const SUPER_PWD="Mundial2026!";
+const CACHE_MS=5*60*1000;
 const API_KEY="009c3e6fcd7c40948730836ac3df3ee3";
 const WC_API="https://api.football-data.org/v4/competitions/WC";
-const CACHE_MS=5*60*1000;
-const APP_NAME="Nico Fantasy";
-const LIGA_NAME="¿Dónde está la bolita? 😉";
 
-// ── UTILS ─────────────────────────────────────────────────────────────────────
+// ── UTILS ─────────────────────────────────────────────────────────────────
 const hashPwd=s=>{let h=0;for(let c of s)h=(Math.imul(31,h)+c.charCodeAt(0))|0;return h.toString(36);};
 const fDate=d=>new Date(d).toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});
 const fTime=d=>new Date(d).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
 const started=d=>new Date(d)<=new Date();
+const randId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
-const FLAGS={"Argentina":"🇦🇷","Bosnia and Herzegovina":"🇧🇦","Bosnia":"🇧🇦","Sweden":"🇸🇪","Haiti":"🇭🇹","Turkey":"🇹🇷","Türkiye":"🇹🇷","Curaçao":"🇨🇼","Curacao":"🇨🇼","South Africa":"🇿🇦","Czechia":"🇨🇿","Czech Republic":"🇨🇿","Côte d'Ivoire":"🇨🇮","Ivory Coast":"🇨🇮","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","USA":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Korea Republic":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Cote d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Czech Republic":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Palestine":"🇵🇸","Jordan":"🇯🇴","Iraq":"🇮🇶","Mali":"🇲🇱","Guinea":"🇬🇳","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪"};
+const FLAGS={"Argentina":"🇦🇷","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Jordan":"🇯🇴","Iraq":"🇮🇶","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪","Uzbekistan":"🇺🇿","Bosnia and Herzegovina":"🇧🇦","Haiti":"🇭🇹","Cape Verde":"🇨🇻","Curaçao":"🇨🇼","Curacao":"🇨🇼"};
 const flag=n=>FLAGS[n]||"⚽";
 
 const STAGE_SHORT={GROUP_STAGE:"Grupos",ROUND_OF_32:"1/16",ROUND_OF_16:"Octavos",QUARTER_FINALS:"Cuartos",SEMI_FINALS:"Semis",THIRD_PLACE:"3er Puesto",FINAL:"Final 🏆"};
 const STAGE_FULL={GROUP_STAGE:"Fase de Grupos",ROUND_OF_32:"Dieciseisavos de Final",ROUND_OF_16:"Octavos de Final",QUARTER_FINALS:"Cuartos de Final",SEMI_FINALS:"Semifinales",THIRD_PLACE:"3er y 4º Puesto",FINAL:"Gran Final 🏆"};
 const STAGE_ORDER=["GROUP_STAGE","ROUND_OF_32","ROUND_OF_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
+const LEAGUE_EMOJIS=["⚽","🏆","🔥","⚡","🌟","🎯","🏅","🎪","🏟️","🎊","🥇","💥","🦁","🦅","🐉","🚀"];
 
-const WC2026_TEAMS=[
-  {id:1,name:"United States",shortName:"EE.UU."},{id:2,name:"Canada",shortName:"Canadá"},{id:3,name:"Mexico",shortName:"México"},
-  {id:4,name:"Argentina",shortName:"Argentina"},{id:5,name:"Brazil",shortName:"Brasil"},{id:6,name:"Colombia",shortName:"Colombia"},
-  {id:7,name:"Uruguay",shortName:"Uruguay"},{id:8,name:"Ecuador",shortName:"Ecuador"},{id:9,name:"Venezuela",shortName:"Venezuela"},
-  {id:10,name:"Germany",shortName:"Alemania"},{id:11,name:"Spain",shortName:"España"},{id:12,name:"France",shortName:"Francia"},
-  {id:13,name:"England",shortName:"Inglaterra"},{id:14,name:"Portugal",shortName:"Portugal"},{id:15,name:"Netherlands",shortName:"Países Bajos"},
-  {id:16,name:"Belgium",shortName:"Bélgica"},{id:17,name:"Italy",shortName:"Italia"},{id:18,name:"Austria",shortName:"Austria"},
-  {id:19,name:"Denmark",shortName:"Dinamarca"},{id:20,name:"Switzerland",shortName:"Suiza"},{id:21,name:"Serbia",shortName:"Serbia"},
-  {id:22,name:"Ukraine",shortName:"Ucrania"},{id:23,name:"Hungary",shortName:"Hungría"},{id:24,name:"Scotland",shortName:"Escocia"},
-  {id:25,name:"Slovenia",shortName:"Eslovenia"},{id:26,name:"Japan",shortName:"Japón"},{id:27,name:"South Korea",shortName:"Corea del Sur"},
-  {id:28,name:"Iran",shortName:"Irán"},{id:29,name:"Saudi Arabia",shortName:"Arabia Saudí"},{id:30,name:"Australia",shortName:"Australia"},
-  {id:31,name:"Indonesia",shortName:"Indonesia"},{id:32,name:"Jordan",shortName:"Jordania"},{id:33,name:"Iraq",shortName:"Iraq"},
-  {id:34,name:"Morocco",shortName:"Marruecos"},{id:35,name:"Senegal",shortName:"Senegal"},{id:36,name:"Egypt",shortName:"Egipto"},
-  {id:37,name:"Nigeria",shortName:"Nigeria"},{id:38,name:"Cameroon",shortName:"Camerún"},{id:39,name:"South Africa",shortName:"Sudáfrica"},
-  {id:40,name:"DR Congo",shortName:"RD Congo"},{id:41,name:"Tunisia",shortName:"Túnez"},{id:42,name:"Algeria",shortName:"Argelia"},
-  {id:43,name:"Panama",shortName:"Panamá"},{id:44,name:"Honduras",shortName:"Honduras"},{id:45,name:"Costa Rica",shortName:"Costa Rica"},
-  {id:46,name:"New Zealand",shortName:"Nueva Zelanda"},{id:47,name:"Jamaica",shortName:"Jamaica"},{id:48,name:"El Salvador",shortName:"El Salvador"},
-];
+const WC2026_TEAMS=[{id:1,name:"United States",shortName:"EE.UU."},{id:2,name:"Canada",shortName:"Canadá"},{id:3,name:"Mexico",shortName:"México"},{id:4,name:"Argentina",shortName:"Argentina"},{id:5,name:"Brazil",shortName:"Brasil"},{id:6,name:"Colombia",shortName:"Colombia"},{id:7,name:"Uruguay",shortName:"Uruguay"},{id:8,name:"Ecuador",shortName:"Ecuador"},{id:9,name:"Venezuela",shortName:"Venezuela"},{id:10,name:"Germany",shortName:"Alemania"},{id:11,name:"Spain",shortName:"España"},{id:12,name:"France",shortName:"Francia"},{id:13,name:"England",shortName:"Inglaterra"},{id:14,name:"Portugal",shortName:"Portugal"},{id:15,name:"Netherlands",shortName:"P.Bajos"},{id:16,name:"Belgium",shortName:"Bélgica"},{id:17,name:"Italy",shortName:"Italia"},{id:18,name:"Austria",shortName:"Austria"},{id:19,name:"Denmark",shortName:"Dinamarca"},{id:20,name:"Switzerland",shortName:"Suiza"},{id:21,name:"Serbia",shortName:"Serbia"},{id:22,name:"Ukraine",shortName:"Ucrania"},{id:23,name:"Hungary",shortName:"Hungría"},{id:24,name:"Scotland",shortName:"Escocia"},{id:25,name:"Slovenia",shortName:"Eslovenia"},{id:26,name:"Japan",shortName:"Japón"},{id:27,name:"South Korea",shortName:"Corea Sur"},{id:28,name:"Iran",shortName:"Irán"},{id:29,name:"Saudi Arabia",shortName:"Arabia S."},{id:30,name:"Australia",shortName:"Australia"},{id:31,name:"Indonesia",shortName:"Indonesia"},{id:32,name:"Jordan",shortName:"Jordania"},{id:33,name:"Iraq",shortName:"Iraq"},{id:34,name:"Morocco",shortName:"Marruecos"},{id:35,name:"Senegal",shortName:"Senegal"},{id:36,name:"Egypt",shortName:"Egipto"},{id:37,name:"Nigeria",shortName:"Nigeria"},{id:38,name:"Cameroon",shortName:"Camerún"},{id:39,name:"South Africa",shortName:"Sudáfrica"},{id:40,name:"DR Congo",shortName:"RD Congo"},{id:41,name:"Tunisia",shortName:"Túnez"},{id:42,name:"Algeria",shortName:"Argelia"},{id:43,name:"Panama",shortName:"Panamá"},{id:44,name:"Honduras",shortName:"Honduras"},{id:45,name:"Costa Rica",shortName:"Costa Rica"},{id:46,name:"New Zealand",shortName:"N.Zelanda"},{id:47,name:"Jamaica",shortName:"Jamaica"},{id:48,name:"El Salvador",shortName:"El Salvador"}];
 
-// ── POINTS ─────────────────────────────────────────────────────────────────
+// ── POINTS ────────────────────────────────────────────────────────────────
 function calcPts(pred,match){
   if(!pred||match.status!=="FINISHED")return null;
   const pH=+pred.home,pA=+pred.away;
@@ -112,24 +96,254 @@ function userTotal(uid,users,preds,matches){
   return pts;
 }
 
-// ── DESIGN ─────────────────────────────────────────────────────────────────
+// ── MATCHES ───────────────────────────────────────────────────────────────
+function getHardcodedMatches(){
+  const M=(id,group,md,date,home,hS,away,aS)=>({id,stage:"GROUP_STAGE",group,matchday:md,utcDate:date,status:"TIMED",homeTeam:{name:home,shortName:hS},awayTeam:{name:away,shortName:aS},score:{fullTime:{home:null,away:null},winner:null,duration:null}});
+  return[
+    M(1,"Group A",1,"2026-06-11T19:00:00Z","Mexico","México","South Africa","Sudáfrica"),
+    M(2,"Group A",1,"2026-06-12T02:00:00Z","South Korea","Corea Sur","Czechia","Chequia"),
+    M(3,"Group B",1,"2026-06-12T19:00:00Z","Canada","Canadá","Bosnia and Herzegovina","Bosnia"),
+    M(4,"Group D",1,"2026-06-13T01:00:00Z","United States","EE.UU.","Paraguay","Paraguay"),
+    M(5,"Group B",1,"2026-06-13T19:00:00Z","Qatar","Qatar","Switzerland","Suiza"),
+    M(6,"Group C",1,"2026-06-13T22:00:00Z","Brazil","Brasil","Morocco","Marruecos"),
+    M(7,"Group C",1,"2026-06-14T01:00:00Z","Haiti","Haití","Scotland","Escocia"),
+    M(8,"Group D",1,"2026-06-14T04:00:00Z","Australia","Australia","Turkey","Turquía"),
+    M(9,"Group E",1,"2026-06-14T17:00:00Z","Germany","Alemania","Curaçao","Curazao"),
+    M(10,"Group F",1,"2026-06-14T20:00:00Z","Netherlands","P.Bajos","Japan","Japón"),
+    M(11,"Group E",1,"2026-06-14T23:00:00Z","Côte d'Ivoire","C.Marfil","Ecuador","Ecuador"),
+    M(12,"Group F",1,"2026-06-15T02:00:00Z","Tunisia","Túnez","Sweden","Suecia"),
+    M(13,"Group H",1,"2026-06-15T16:00:00Z","Spain","España","Cape Verde","Cabo Verde"),
+    M(14,"Group G",1,"2026-06-15T19:00:00Z","Belgium","Bélgica","Egypt","Egipto"),
+    M(15,"Group H",1,"2026-06-15T22:00:00Z","Saudi Arabia","Arabia S.","Uruguay","Uruguay"),
+    M(16,"Group G",1,"2026-06-16T01:00:00Z","Iran","Irán","New Zealand","N.Zelanda"),
+    M(17,"Group I",1,"2026-06-16T19:00:00Z","France","Francia","Senegal","Senegal"),
+    M(18,"Group I",1,"2026-06-16T22:00:00Z","Iraq","Iraq","Norway","Noruega"),
+    M(19,"Group J",1,"2026-06-17T01:00:00Z","Argentina","Argentina","Algeria","Argelia"),
+    M(20,"Group J",1,"2026-06-17T04:00:00Z","Austria","Austria","Jordan","Jordania"),
+    M(21,"Group K",1,"2026-06-17T17:00:00Z","Portugal","Portugal","DR Congo","RD Congo"),
+    M(22,"Group L",1,"2026-06-17T20:00:00Z","England","Inglaterra","Croatia","Croacia"),
+    M(23,"Group L",1,"2026-06-17T23:00:00Z","Ghana","Ghana","Panama","Panamá"),
+    M(24,"Group K",1,"2026-06-18T02:00:00Z","Uzbekistan","Uzbekistán","Colombia","Colombia"),
+    M(25,"Group A",2,"2026-06-18T16:00:00Z","Czechia","Chequia","South Africa","Sudáfrica"),
+    M(26,"Group B",2,"2026-06-18T19:00:00Z","Switzerland","Suiza","Bosnia and Herzegovina","Bosnia"),
+    M(27,"Group B",2,"2026-06-18T22:00:00Z","Canada","Canadá","Qatar","Qatar"),
+    M(28,"Group A",2,"2026-06-19T01:00:00Z","Mexico","México","South Korea","Corea Sur"),
+    M(29,"Group D",2,"2026-06-19T19:00:00Z","United States","EE.UU.","Australia","Australia"),
+    M(30,"Group C",2,"2026-06-19T19:00:00Z","Scotland","Escocia","Morocco","Marruecos"),
+    M(31,"Group C",2,"2026-06-20T01:00:00Z","Brazil","Brasil","Haiti","Haití"),
+    M(32,"Group D",2,"2026-06-20T04:00:00Z","Turkey","Turquía","Paraguay","Paraguay"),
+    M(33,"Group F",2,"2026-06-20T17:00:00Z","Netherlands","P.Bajos","Sweden","Suecia"),
+    M(34,"Group E",2,"2026-06-20T20:00:00Z","Germany","Alemania","Côte d'Ivoire","C.Marfil"),
+    M(35,"Group E",2,"2026-06-21T00:00:00Z","Ecuador","Ecuador","Curaçao","Curazao"),
+    M(36,"Group F",2,"2026-06-21T04:00:00Z","Tunisia","Túnez","Japan","Japón"),
+    M(37,"Group H",2,"2026-06-21T16:00:00Z","Spain","España","Saudi Arabia","Arabia S."),
+    M(38,"Group G",2,"2026-06-21T19:00:00Z","Belgium","Bélgica","Iran","Irán"),
+    M(39,"Group H",2,"2026-06-21T22:00:00Z","Uruguay","Uruguay","Cape Verde","Cabo Verde"),
+    M(40,"Group G",2,"2026-06-22T01:00:00Z","New Zealand","N.Zelanda","Egypt","Egipto"),
+    M(41,"Group J",2,"2026-06-22T17:00:00Z","Argentina","Argentina","Austria","Austria"),
+    M(42,"Group I",2,"2026-06-22T21:00:00Z","France","Francia","Iraq","Iraq"),
+    M(43,"Group I",2,"2026-06-23T00:00:00Z","Norway","Noruega","Senegal","Senegal"),
+    M(44,"Group J",2,"2026-06-23T03:00:00Z","Jordan","Jordania","Algeria","Argelia"),
+    M(45,"Group K",2,"2026-06-23T17:00:00Z","Portugal","Portugal","Uzbekistan","Uzbekistán"),
+    M(46,"Group L",2,"2026-06-23T20:00:00Z","England","Inglaterra","Ghana","Ghana"),
+    M(47,"Group L",2,"2026-06-23T23:00:00Z","Panama","Panamá","Croatia","Croacia"),
+    M(48,"Group K",2,"2026-06-24T02:00:00Z","Colombia","Colombia","DR Congo","RD Congo"),
+    M(49,"Group B",3,"2026-06-24T19:00:00Z","Switzerland","Suiza","Canada","Canadá"),
+    M(50,"Group B",3,"2026-06-24T19:00:00Z","Bosnia and Herzegovina","Bosnia","Qatar","Qatar"),
+    M(51,"Group C",3,"2026-06-24T22:00:00Z","Brazil","Brasil","Scotland","Escocia"),
+    M(52,"Group C",3,"2026-06-24T22:00:00Z","Morocco","Marruecos","Haiti","Haití"),
+    M(53,"Group A",3,"2026-06-25T01:00:00Z","Mexico","México","Czechia","Chequia"),
+    M(54,"Group A",3,"2026-06-25T01:00:00Z","South Korea","Corea Sur","South Africa","Sudáfrica"),
+    M(55,"Group E",3,"2026-06-25T20:00:00Z","Ecuador","Ecuador","Germany","Alemania"),
+    M(56,"Group E",3,"2026-06-25T20:00:00Z","Curaçao","Curazao","Côte d'Ivoire","C.Marfil"),
+    M(57,"Group F",3,"2026-06-25T23:00:00Z","Tunisia","Túnez","Netherlands","P.Bajos"),
+    M(58,"Group F",3,"2026-06-25T23:00:00Z","Japan","Japón","Sweden","Suecia"),
+    M(59,"Group D",3,"2026-06-26T02:00:00Z","United States","EE.UU.","Turkey","Turquía"),
+    M(60,"Group D",3,"2026-06-26T02:00:00Z","Paraguay","Paraguay","Australia","Australia"),
+    M(61,"Group I",3,"2026-06-26T19:00:00Z","Norway","Noruega","France","Francia"),
+    M(62,"Group I",3,"2026-06-26T19:00:00Z","Senegal","Senegal","Iraq","Iraq"),
+    M(63,"Group H",3,"2026-06-27T00:00:00Z","Uruguay","Uruguay","Spain","España"),
+    M(64,"Group H",3,"2026-06-27T00:00:00Z","Cape Verde","Cabo Verde","Saudi Arabia","Arabia S."),
+    M(65,"Group G",3,"2026-06-27T03:00:00Z","New Zealand","N.Zelanda","Belgium","Bélgica"),
+    M(66,"Group G",3,"2026-06-27T03:00:00Z","Egypt","Egipto","Iran","Irán"),
+    M(67,"Group J",3,"2026-06-27T19:00:00Z","Argentina","Argentina","Jordan","Jordania"),
+    M(68,"Group J",3,"2026-06-27T19:00:00Z","Algeria","Argelia","Austria","Austria"),
+    M(69,"Group K",3,"2026-06-27T22:00:00Z","Portugal","Portugal","Colombia","Colombia"),
+    M(70,"Group K",3,"2026-06-27T22:00:00Z","Uzbekistan","Uzbekistán","DR Congo","RD Congo"),
+    M(71,"Group L",3,"2026-06-28T01:00:00Z","England","Inglaterra","Panama","Panamá"),
+    M(72,"Group L",3,"2026-06-28T01:00:00Z","Croatia","Croacia","Ghana","Ghana"),
+  ];
+}
+
+// ── DESIGN ────────────────────────────────────────────────────────────────
 const RED="linear-gradient(135deg,#C41E3A,#E8400C)";
 const NAVY="linear-gradient(135deg,#0A1628,#1a3a5c)";
 const GOLD="#FFD700";
 const inp={width:"100%",border:"2px solid #E5E7EB",borderRadius:12,padding:"0.7rem 1rem",fontSize:"0.95rem",fontFamily:"'Nunito',sans-serif",outline:"none",boxSizing:"border-box",background:"white"};
-const btn={border:"none",borderRadius:12,padding:"0.75rem 1rem",fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif",fontSize:"0.95rem",transition:"opacity .15s"};
+const btn={border:"none",borderRadius:12,padding:"0.75rem 1rem",fontWeight:800,cursor:"pointer",fontFamily:"'Nunito',sans-serif",fontSize:"0.95rem"};
 
-// ── MATCH CARD ──────────────────────────────────────────────────────────────
+// ── WELCOME SCREEN ────────────────────────────────────────────────────────
+function WelcomeScreen({leagues,onSelect,onCreateLeague}){
+  return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0A1628 0%,#1a3a5c 45%,#7B0000 100%)",display:"flex",flexDirection:"column",alignItems:"center",padding:"2rem 1rem",fontFamily:"'Nunito',sans-serif",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",inset:0,backgroundImage:"radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px)",backgroundSize:"38px 38px",pointerEvents:"none"}}/>
+      <div style={{textAlign:"center",marginBottom:"2rem",position:"relative",zIndex:1}}>
+        <div style={{fontSize:"5rem",lineHeight:1,filter:"drop-shadow(0 0 40px rgba(255,215,0,0.55))",marginBottom:10}}>🏆</div>
+        <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"3rem",color:GOLD,letterSpacing:"0.15em",lineHeight:0.9,textShadow:"0 0 50px rgba(255,215,0,0.4)"}}>Nico Fantasy</div>
+        <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.4rem",color:"rgba(255,255,255,0.6)",letterSpacing:"0.2em"}}>MUNDIAL 2026</div>
+        <div style={{color:"#94b0cc",fontSize:"0.78rem",marginTop:8,letterSpacing:"0.12em",textTransform:"uppercase"}}>🇺🇸 USA · 🇨🇦 Canadá · 🇲🇽 México</div>
+      </div>
+      <div style={{width:"100%",maxWidth:400,position:"relative",zIndex:1}}>
+        <div style={{color:"rgba(255,255,255,0.7)",fontSize:"0.85rem",fontWeight:700,textAlign:"center",marginBottom:"1rem",letterSpacing:"0.08em",textTransform:"uppercase"}}>Elige tu liga</div>
+        {leagues.length===0?(
+          <div style={{textAlign:"center",color:"rgba(255,255,255,0.4)",padding:"2rem",fontSize:"0.9rem"}}>No hay ligas todavía. ¡Crea la primera!</div>
+        ):leagues.map(lg=>(
+          <button key={lg.id} onClick={()=>onSelect(lg)} style={{width:"100%",marginBottom:"0.75rem",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:16,padding:"1.1rem 1.25rem",display:"flex",alignItems:"center",gap:"1rem",cursor:"pointer",transition:"all .15s",backdropFilter:"blur(4px)",fontFamily:"'Nunito',sans-serif",textAlign:"left"}}
+            onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.15)";e.currentTarget.style.transform="translateY(-2px)";}}
+            onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.08)";e.currentTarget.style.transform="none";}}>
+            <span style={{fontSize:"2.2rem",lineHeight:1}}>{lg.emoji||"⚽"}</span>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:900,fontSize:"1rem",color:"white"}}>{lg.name}</div>
+              <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.5)",marginTop:2}}>{lg.memberCount||""}{lg.memberCount?" participantes":""}</div>
+            </div>
+            <span style={{color:GOLD,fontSize:"1.3rem"}}>→</span>
+          </button>
+        ))}
+        <button onClick={onCreateLeague} style={{width:"100%",marginTop:"0.5rem",background:"rgba(255,215,0,0.1)",border:"1px dashed rgba(255,215,0,0.4)",borderRadius:16,padding:"0.9rem",color:GOLD,fontWeight:800,cursor:"pointer",fontSize:"0.9rem",fontFamily:"'Nunito',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:"0.5rem"}}>
+          ➕ Crear nueva liga
+        </button>
+      </div>
+      <p style={{position:"absolute",bottom:"1rem",color:"rgba(148,176,204,0.4)",fontSize:"0.68rem"}}>Junio–Julio 2026 · 48 selecciones · 104 partidos</p>
+    </div>
+  );
+}
+
+// ── CREATE LEAGUE MODAL ───────────────────────────────────────────────────
+function CreateLeagueModal({onSave,onClose}){
+  const [name,setName]=useState("");
+  const [emoji,setEmoji]=useState("⚽");
+  const [adminUser,setAdminUser]=useState("");
+  const [adminPwd,setAdminPwd]=useState("");
+  const [superKey,setSuperKey]=useState("");
+  const [error,setError]=useState("");
+
+  const save=async()=>{
+    if(hashPwd(superKey)!==hashPwd(SUPER_PWD)){setError("Código de creación incorrecto");return;}
+    if(!name.trim()||!adminUser.trim()||!adminPwd.trim()){setError("Todos los campos son obligatorios");return;}
+    await onSave(name.trim(),emoji,adminUser.trim(),adminPwd);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"1rem",fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:400,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 30px 80px rgba(0,0,0,0.6)"}}>
+        <div style={{background:NAVY,borderRadius:"20px 20px 0 0",padding:"1.5rem",textAlign:"center",color:"white"}}>
+          <div style={{fontSize:"2.5rem",marginBottom:6}}>🏆</div>
+          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.6rem",color:GOLD,letterSpacing:"0.08em"}}>Crear Nueva Liga</div>
+        </div>
+        <div style={{padding:"1.5rem"}}>
+          {error&&<div style={{background:"#FEE2E2",border:"1px solid #FECACA",borderRadius:10,padding:"0.65rem",color:"#DC2626",fontSize:"0.875rem",marginBottom:"1rem",fontWeight:700}}>{error}</div>}
+          
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Nombre de la liga</label>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Los Cracks del Barrio" style={{...inp,marginBottom:"1rem"}}/>
+          
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:8,letterSpacing:"0.07em",textTransform:"uppercase"}}>Emoji de la liga</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:"1rem"}}>
+            {LEAGUE_EMOJIS.map(e=>(
+              <button key={e} onClick={()=>setEmoji(e)} style={{width:42,height:42,fontSize:"1.5rem",borderRadius:10,border:`2px solid ${emoji===e?"#C41E3A":"#E5E7EB"}`,background:emoji===e?"#FEF2F2":"white",cursor:"pointer"}}>{e}</button>
+            ))}
+          </div>
+          
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Usuario admin de esta liga</label>
+          <input value={adminUser} onChange={e=>setAdminUser(e.target.value)} placeholder="admin_liga2" style={{...inp,marginBottom:"0.75rem"}}/>
+          
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Contraseña admin</label>
+          <input type="password" value={adminPwd} onChange={e=>setAdminPwd(e.target.value)} placeholder="••••••••" style={{...inp,marginBottom:"0.75rem"}}/>
+          
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Código de creación 🔑</label>
+          <input type="password" value={superKey} onChange={e=>setSuperKey(e.target.value)} placeholder="Contraseña del superadmin" style={{...inp,marginBottom:"1.25rem"}}/>
+          
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onClose} style={{...btn,flex:1,background:"#F3F4F6",color:"#374151"}}>Cancelar</button>
+            <button onClick={save} disabled={!name||!adminUser||!adminPwd||!superKey} style={{...btn,flex:2,background:RED,color:"white",opacity:(!name||!adminUser||!adminPwd||!superKey)?0.4:1,cursor:(!name||!adminUser||!adminPwd||!superKey)?"not-allowed":"pointer"}}>✅ Crear Liga</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+function LoginScreen({league,onLogin,onBack,error,busy}){
+  const [u,setU]=useState("");const [p,setP]=useState("");
+  const go=()=>onLogin(u,p);
+  return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0A1628 0%,#1a3a5c 45%,#7B0000 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",fontFamily:"'Nunito',sans-serif",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",inset:0,backgroundImage:"radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px)",backgroundSize:"38px 38px",pointerEvents:"none"}}/>
+      <div style={{width:"100%",maxWidth:370,position:"relative",zIndex:1}}>
+        <button onClick={onBack} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"rgba(255,255,255,0.7)",padding:"0.4rem 0.8rem",cursor:"pointer",fontSize:"0.8rem",fontFamily:"'Nunito',sans-serif",marginBottom:"1rem",fontWeight:700}}>← Volver</button>
+        <div style={{textAlign:"center",marginBottom:"1.75rem"}}>
+          <div style={{fontSize:"4rem",lineHeight:1,marginBottom:8}}>{league.emoji||"⚽"}</div>
+          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",color:GOLD,letterSpacing:"0.12em",lineHeight:1}}>{APP_NAME}</div>
+          <div style={{marginTop:10,background:"rgba(255,215,0,0.12)",border:"1px solid rgba(255,215,0,0.3)",borderRadius:20,padding:"0.4rem 1rem",display:"inline-block"}}>
+            <span style={{color:GOLD,fontSize:"0.88rem",fontWeight:800}}>{league.name}</span>
+          </div>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.97)",borderRadius:22,padding:"2rem",boxShadow:"0 30px 70px rgba(0,0,0,0.55)"}}>
+          {error&&<div style={{background:"#FEE2E2",border:"1px solid #FECACA",borderRadius:10,padding:"0.65rem",color:"#DC2626",fontSize:"0.875rem",textAlign:"center",marginBottom:"1rem",fontWeight:700}}>{error}</div>}
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Usuario</label>
+          <input type="text" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Tu nombre de usuario" style={{...inp,marginBottom:"1rem"}}/>
+          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Contraseña</label>
+          <input type="password" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="••••••••" style={{...inp,marginBottom:"1.5rem"}}/>
+          <button onClick={go} disabled={busy||!u||!p} style={{...btn,width:"100%",background:RED,color:"white",fontSize:"1.05rem",boxShadow:"0 5px 18px rgba(196,30,58,0.45)",opacity:(!u||!p||busy)?0.45:1,cursor:(!u||!p||busy)?"not-allowed":"pointer"}}>{busy?"Entrando...":"⚽ Entrar"}</button>
+          <p style={{textAlign:"center",color:"#9CA3AF",fontSize:"0.72rem",marginTop:"1rem"}}>¿Sin cuenta? Pide al admin que te la cree</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CHAMPION MODAL ────────────────────────────────────────────────────────
+function ChampionModal({onPick}){
+  const [q,setQ]=useState("");const [sel,setSel]=useState("");
+  const filtered=WC2026_TEAMS.filter(t=>t.name.toLowerCase().includes(q.toLowerCase())||t.shortName.toLowerCase().includes(q.toLowerCase()));
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"1rem",fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:460,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 30px 80px rgba(0,0,0,0.6)"}}>
+        <div style={{background:NAVY,borderRadius:"20px 20px 0 0",padding:"1.5rem",textAlign:"center",color:"white"}}>
+          <div style={{fontSize:"3rem",lineHeight:1,marginBottom:6,filter:"drop-shadow(0 0 20px rgba(255,215,0,0.6))"}}>🏆</div>
+          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.9rem",color:GOLD,letterSpacing:"0.08em"}}>¿Quién ganará el Mundial?</div>
+          <p style={{fontSize:"0.8rem",opacity:0.85,marginTop:6,fontWeight:600,lineHeight:1.5}}>Esta predicción vale <strong style={{color:GOLD}}>15 puntos</strong>.<br/>No podrás cambiarla una vez empiece el torneo.</p>
+        </div>
+        <div style={{padding:"0.75rem 1rem 0.5rem"}}>
+          <input placeholder="🔍 Buscar selección..." value={q} onChange={e=>setQ(e.target.value)} style={{...inp,borderRadius:10,padding:"0.55rem 1rem"}}/>
+        </div>
+        <div style={{overflowY:"auto",flex:1,padding:"0.25rem 1rem 0.5rem"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+            {filtered.map(t=>(
+              <button key={t.id} onClick={()=>setSel(t.name)} style={{padding:"0.7rem",borderRadius:10,textAlign:"left",cursor:"pointer",border:`2px solid ${sel===t.name?"#C41E3A":"#E5E7EB"}`,background:sel===t.name?"#FEF2F2":"white",fontFamily:"'Nunito',sans-serif"}}>
+                <div style={{fontSize:"1.75rem",lineHeight:1}}>{flag(t.name)}</div>
+                <div style={{fontSize:"0.75rem",fontWeight:800,color:"#374151",marginTop:3}}>{t.shortName||t.name}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{padding:"0.75rem 1rem",borderTop:"1px solid #F3F4F6"}}>
+          <button onClick={()=>sel&&onPick(sel)} disabled={!sel} style={{...btn,width:"100%",background:sel?RED:"#E5E7EB",color:sel?"white":"#9CA3AF",cursor:sel?"pointer":"not-allowed"}}>
+            {sel?`✅ Confirmar: ${flag(sel)} ${sel}`:"Elige tu campeón primero"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MATCH CARD ────────────────────────────────────────────────────────────
 function MatchCard({match,pred,onSave}){
-  const[h,setH]=useState(pred?.home?.toString()??"");
-  const[a,setA]=useState(pred?.away?.toString()??"");
-  const[saving,setSaving]=useState(false);
-  const[flash,setFlash]=useState(false);
-  const isKO=match.stage!=="GROUP_STAGE";
-  const live=match.status==="IN_PLAY"||match.status==="PAUSED";
-  const fin=match.status==="FINISHED";
-  const gone=started(match.utcDate);
-  const pts=calcPts(pred,match);
+  const [h,setH]=useState(pred?.home?.toString()??"");
+  const [a,setA]=useState(pred?.away?.toString()??"");
+  const [saving,setSaving]=useState(false);const [flash,setFlash]=useState(false);
+  const isKO=match.stage!=="GROUP_STAGE";const live=match.status==="IN_PLAY"||match.status==="PAUSED";
+  const fin=match.status==="FINISHED";const gone=started(match.utcDate);const pts=calcPts(pred,match);
   const border=fin&&pred!=null?pts===5?"#F59E0B":pts>0?"#22C55E":"#F87171":live?"#EF4444":"#E5E7EB";
   const bg=fin&&pred!=null?pts===5?"#FFFBEB":pts>0?"#F0FDF4":"#FFF5F5":"white";
   const save=async()=>{
@@ -169,91 +383,22 @@ function MatchCard({match,pred,onSave}){
   );
 }
 
-// ── CHAMPION MODAL ──────────────────────────────────────────────────────────
-function ChampionModal({onPick}){
-  const[q,setQ]=useState("");
-  const[sel,setSel]=useState("");
-  const filtered=WC2026_TEAMS.filter(t=>t.name.toLowerCase().includes(q.toLowerCase())||t.shortName.toLowerCase().includes(q.toLowerCase()));
-  return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"1rem"}}>
-      <div style={{background:"white",borderRadius:20,width:"100%",maxWidth:460,maxHeight:"92vh",display:"flex",flexDirection:"column",boxShadow:"0 30px 80px rgba(0,0,0,0.6)"}}>
-        <div style={{background:NAVY,borderRadius:"20px 20px 0 0",padding:"1.5rem",textAlign:"center",color:"white"}}>
-          <div style={{fontSize:"3rem",lineHeight:1,marginBottom:6,filter:"drop-shadow(0 0 20px rgba(255,215,0,0.6))"}}>🏆</div>
-          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.9rem",color:GOLD,letterSpacing:"0.08em"}}>¿Quién ganará el Mundial?</div>
-          <p style={{fontSize:"0.8rem",opacity:0.85,marginTop:6,fontWeight:600,lineHeight:1.5}}>Esta predicción vale <strong style={{color:GOLD}}>15 puntos</strong>.<br/>No podrás cambiarla una vez empiece el torneo.</p>
-        </div>
-        <div style={{padding:"0.75rem 1rem 0.5rem"}}>
-          <input placeholder="🔍 Buscar selección..." value={q} onChange={e=>setQ(e.target.value)} style={{...inp,borderRadius:10,padding:"0.55rem 1rem"}}/>
-        </div>
-        <div style={{overflowY:"auto",flex:1,padding:"0.25rem 1rem 0.5rem"}}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
-            {filtered.map(t=>(
-              <button key={t.id} onClick={()=>setSel(t.name)} style={{padding:"0.7rem",borderRadius:10,textAlign:"left",cursor:"pointer",border:`2px solid ${sel===t.name?"#C41E3A":"#E5E7EB"}`,background:sel===t.name?"#FEF2F2":"white",fontFamily:"'Nunito',sans-serif",transition:"all .12s"}}>
-                <div style={{fontSize:"1.75rem",lineHeight:1}}>{flag(t.name)}</div>
-                <div style={{fontSize:"0.75rem",fontWeight:800,color:"#374151",marginTop:3}}>{t.shortName||t.name}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-        <div style={{padding:"0.75rem 1rem",borderTop:"1px solid #F3F4F6"}}>
-          <button onClick={()=>sel&&onPick(sel)} disabled={!sel} style={{...btn,width:"100%",background:sel?RED:"#E5E7EB",color:sel?"white":"#9CA3AF",cursor:sel?"pointer":"not-allowed",fontSize:"0.95rem"}}>
-            {sel?`✅ Confirmar: ${flag(sel)} ${sel}`:"Elige tu campeón primero"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── LOGIN ───────────────────────────────────────────────────────────────────
-function LoginScreen({onLogin,error,busy}){
-  const[u,setU]=useState("");const[p,setP]=useState("");
-  const go=()=>onLogin(u,p);
-  return(
-    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0A1628 0%,#1a3a5c 45%,#7B0000 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",inset:0,backgroundImage:"radial-gradient(circle,rgba(255,255,255,0.05) 1px,transparent 1px)",backgroundSize:"38px 38px",pointerEvents:"none"}}/>
-      <div style={{width:"100%",maxWidth:370,position:"relative",zIndex:1}}>
-        <div style={{textAlign:"center",marginBottom:"1.75rem"}}>
-          <div style={{fontSize:"5.5rem",lineHeight:1,filter:"drop-shadow(0 0 40px rgba(255,215,0,0.55))",marginBottom:10}}>🏆</div>
-          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"3.2rem",color:GOLD,letterSpacing:"0.15em",lineHeight:0.9,textShadow:"0 0 50px rgba(255,215,0,0.4)"}}>{APP_NAME}</div>
-          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.6rem",color:"rgba(255,255,255,0.7)",letterSpacing:"0.2em",lineHeight:1.4}}>MUNDIAL 2026</div>
-          <div style={{color:"#94b0cc",fontSize:"0.78rem",marginTop:8,letterSpacing:"0.15em",textTransform:"uppercase"}}>🇺🇸 USA · 🇨🇦 Canadá · 🇲🇽 México</div>
-          <div style={{marginTop:10,background:"rgba(255,215,0,0.12)",border:"1px solid rgba(255,215,0,0.3)",borderRadius:20,padding:"0.4rem 1rem",display:"inline-block"}}>
-            <span style={{color:GOLD,fontSize:"0.88rem",fontWeight:800}}>{LIGA_NAME}</span>
-          </div>
-        </div>
-        <div style={{background:"rgba(255,255,255,0.97)",borderRadius:22,padding:"2rem",boxShadow:"0 30px 70px rgba(0,0,0,0.55),0 0 0 1px rgba(255,215,0,0.15)"}}>
-          {error&&<div style={{background:"#FEE2E2",border:"1px solid #FECACA",borderRadius:10,padding:"0.65rem",color:"#DC2626",fontSize:"0.875rem",textAlign:"center",marginBottom:"1rem",fontWeight:700}}>{error}</div>}
-          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Usuario</label>
-          <input type="text" value={u} onChange={e=>setU(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Tu nombre de usuario" style={{...inp,marginBottom:"1rem"}}/>
-          <label style={{display:"block",fontSize:"0.72rem",fontWeight:900,color:"#374151",marginBottom:5,letterSpacing:"0.07em",textTransform:"uppercase"}}>Contraseña</label>
-          <input type="password" value={p} onChange={e=>setP(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="••••••••" style={{...inp,marginBottom:"1.5rem"}}/>
-          <button onClick={go} disabled={busy||!u||!p} style={{...btn,width:"100%",background:RED,color:"white",fontSize:"1.05rem",boxShadow:"0 5px 18px rgba(196,30,58,0.45)",opacity:(!u||!p||busy)?0.45:1,cursor:(!u||!p||busy)?"not-allowed":"pointer"}}>{busy?"Entrando...":"⚽ Entrar a la Liga"}</button>
-          <p style={{textAlign:"center",color:"#9CA3AF",fontSize:"0.72rem",marginTop:"1rem"}}>¿Sin cuenta? Pide al admin que te la cree</p>
-        </div>
-        <p style={{textAlign:"center",color:"rgba(148,176,204,0.55)",fontSize:"0.7rem",marginTop:"1.25rem"}}>Junio–Julio 2026 · 48 selecciones · 104 partidos</p>
-      </div>
-    </div>
-  );
-}
-
-// ── HOME TAB ────────────────────────────────────────────────────────────────
-function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted}){
+// ── TABS (same as before, condensed) ─────────────────────────────────────
+function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}){
   const myPts=userTotal(user.id,users,preds,matches);
   const sorted=useMemo(()=>[...users].sort((a,b)=>userTotal(b.id,users,preds,matches)-userTotal(a.id,users,preds,matches)),[users,preds,matches]);
   const rank=sorted.findIndex(u=>u.id===user.id)+1;
   const next5=useMemo(()=>matches.filter(m=>!started(m.utcDate)).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)).slice(0,5),[matches]);
   const myPredCount=Object.keys(preds).filter(k=>k.startsWith(user.id+"_")).length;
-  const top5=sorted.slice(0,5);
-  const medals=["🥇","🥈","🥉","4️⃣","5️⃣"];
+  const top5=sorted.slice(0,5);const medals=["🥇","🥈","🥉","4️⃣","5️⃣"];
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
       <div style={{background:NAVY,borderRadius:18,padding:"1.25rem",marginBottom:"1rem",color:"white",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",right:-24,top:-24,fontSize:"9rem",opacity:0.05,lineHeight:1}}>⚽</div>
-        <div style={{fontSize:"0.68rem",opacity:0.55,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:4}}>{LIGA_NAME}</div>
+        <div style={{fontSize:"0.68rem",opacity:0.55,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:4}}>{league.emoji} {league.name}</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Mis puntos</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"3.5rem",color:GOLD,lineHeight:1}}>{myPts}</div><div style={{fontSize:"0.78rem",opacity:0.7}}>Posición <strong>#{rank}</strong> de {users.length}</div></div>
-          <div style={{textAlign:"right"}}><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pronósticos</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2.2rem",color:"white",lineHeight:1}}>{myPredCount}</div><div style={{fontSize:"0.7rem",opacity:0.6}}>de {matches.length} partidos</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pronósticos</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2.2rem",color:"white",lineHeight:1}}>{myPredCount}</div><div style={{fontSize:"0.7rem",opacity:0.6}}>de {matches.length}</div></div>
         </div>
         <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Mi campeón</div><div style={{fontWeight:800,fontSize:"0.95rem",marginTop:2}}>{user.champPick?`${flag(user.champPick)} ${user.champPick}`:"❓ Sin elegir"}</div></div>
@@ -262,7 +407,7 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted}){
         </div>
       </div>
       {next5.length>0&&<><h3 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.3rem",color:"#0A1628",marginBottom:"0.6rem",letterSpacing:"0.06em"}}>PRÓXIMOS PARTIDOS</h3>{next5.map(m=><MatchCard key={m.id} match={m} pred={preds[`${user.id}_${m.id}`]} onSave={()=>{}}/>)}</>}
-      <h3 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.3rem",color:"#0A1628",margin:"1rem 0 0.6rem",letterSpacing:"0.06em"}}>TOP 5 CLASIFICACIÓN</h3>
+      <h3 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.3rem",color:"#0A1628",margin:"1rem 0 0.6rem",letterSpacing:"0.06em"}}>TOP 5</h3>
       <div style={{background:"white",borderRadius:16,border:"1px solid #E5E7EB",overflow:"hidden"}}>
         {top5.map((u,i)=>{const pts=userTotal(u.id,users,preds,matches);const isMe=u.id===user.id;return(
           <div key={u.id} style={{display:"grid",gridTemplateColumns:"36px 1fr auto auto",gap:"0.5rem",alignItems:"center",padding:"0.75rem 1rem",background:isMe?"#FEF3C7":i===0?"#FFFBEB":"transparent",borderBottom:i<4?"1px solid #F3F4F6":"none"}}>
@@ -277,11 +422,9 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted}){
   );
 }
 
-// ── PREDICTIONS TAB ─────────────────────────────────────────────────────────
 function PredictionsTab({user,preds,matches,onSave}){
   const phases=useMemo(()=>STAGE_ORDER.filter(s=>matches.some(m=>m.stage===s)),[matches]);
-  const[phase,setPhase]=useState(phases[0]||"GROUP_STAGE");
-  const[day,setDay]=useState(1);
+  const [phase,setPhase]=useState(phases[0]||"GROUP_STAGE");const [day,setDay]=useState(1);
   const phaseMatches=useMemo(()=>matches.filter(m=>m.stage===phase).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)),[matches,phase]);
   const matchdays=useMemo(()=>phase==="GROUP_STAGE"?[...new Set(phaseMatches.map(m=>m.matchday))].sort((a,b)=>a-b):[],[phaseMatches,phase]);
   const shown=useMemo(()=>phase==="GROUP_STAGE"?phaseMatches.filter(m=>m.matchday===day):phaseMatches,[phaseMatches,phase,day]);
@@ -303,8 +446,7 @@ function PredictionsTab({user,preds,matches,onSave}){
   );
 }
 
-// ── LEADERBOARD ─────────────────────────────────────────────────────────────
-function LeaderboardTab({user,users,preds,matches}){
+function LeaderboardTab({user,users,preds,matches,league}){
   const ranked=useMemo(()=>[...users].map(u=>{
     let match=0,exact=0,correct=0;
     for(const m of matches){const p=calcPts(preds[`${u.id}_${m.id}`],m);if(p!==null){match+=p;if(p===5)exact++;if(p>0)correct++;}}
@@ -314,7 +456,7 @@ function LeaderboardTab({user,users,preds,matches}){
   const medals=["🥇","🥈","🥉"];
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
-      <div style={{marginBottom:"1rem"}}><h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",color:"#0A1628",letterSpacing:"0.06em",marginBottom:2}}>🏆 CLASIFICACIÓN</h2><div style={{fontSize:"0.82rem",color:"#6B7280",fontWeight:700}}>{LIGA_NAME}</div></div>
+      <div style={{marginBottom:"1rem"}}><h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",color:"#0A1628",letterSpacing:"0.06em",marginBottom:2}}>🏆 CLASIFICACIÓN</h2><div style={{fontSize:"0.82rem",color:"#6B7280",fontWeight:700}}>{league.emoji} {league.name}</div></div>
       <div style={{background:"white",borderRadius:16,border:"1px solid #E5E7EB",overflow:"hidden"}}>
         <div style={{background:"#0A1628",color:"white",display:"grid",gridTemplateColumns:"40px 1fr 40px 40px 55px",padding:"0.55rem 1rem",fontSize:"0.68rem",fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",gap:6}}>
           <span>#</span><span>Jugador</span><span style={{textAlign:"center"}}>🏆</span><span style={{textAlign:"center"}}>⭐</span><span style={{textAlign:"right"}}>Pts</span>
@@ -329,16 +471,13 @@ function LeaderboardTab({user,users,preds,matches}){
           </div>
         );})}
       </div>
-      <div style={{marginTop:"0.75rem",background:"#EFF6FF",borderRadius:12,padding:"0.7rem 1rem",fontSize:"0.72rem",color:"#1E40AF",fontWeight:700,lineHeight:1.6}}>
-        📊 Grupos: ganador=3pts · exacto=5pts | Eliminatorias: 90'=3-5pts · prórroga=2pts · penaltis=1pt | Campeón=15pts
-      </div>
+      <div style={{marginTop:"0.75rem",background:"#EFF6FF",borderRadius:12,padding:"0.7rem 1rem",fontSize:"0.72rem",color:"#1E40AF",fontWeight:700,lineHeight:1.6}}>📊 Grupos: ganador=3pts · exacto=5pts | Eliminatorias: 90'=3-5pts · prórroga=2pts · penaltis=1pt | Campeón=15pts</div>
     </div>
   );
 }
 
-// ── PROFILE TAB ─────────────────────────────────────────────────────────────
-function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted}){
-  const[old,setOld]=useState("");const[nw,setNw]=useState("");const[msg,setMsg]=useState("");
+function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted,league}){
+  const [old,setOld]=useState("");const [nw,setNw]=useState("");const [msg,setMsg]=useState("");
   const changePwd=async()=>{
     if(!old||nw.length<6)return;
     await onUpdatePwd(old,nw,ok=>{setMsg(ok?"✅ Contraseña actualizada":"❌ Contraseña actual incorrecta");if(ok){setOld("");setNw("");}setTimeout(()=>setMsg(""),3500);});
@@ -348,39 +487,35 @@ function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted}){
       <div style={{background:NAVY,borderRadius:18,padding:"1.75rem",marginBottom:"1rem",color:"white",textAlign:"center"}}>
         <div style={{fontSize:"3.5rem",marginBottom:6}}>{user.isAdmin?"👑":"⚽"}</div>
         <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",letterSpacing:"0.1em"}}>{user.displayName||user.username}</div>
-        <div style={{fontSize:"0.75rem",opacity:0.55,marginTop:4}}>{LIGA_NAME}</div>
+        <div style={{fontSize:"0.75rem",opacity:0.55,marginTop:4}}>{league.emoji} {league.name}</div>
         {user.isAdmin&&<div style={{color:GOLD,fontSize:"0.8rem",fontWeight:800,letterSpacing:"0.12em",marginTop:4}}>ADMINISTRADOR</div>}
       </div>
       <div style={{background:"white",borderRadius:16,padding:"1.25rem",marginBottom:"1rem",border:"1px solid #E5E7EB"}}>
         <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"0.75rem",color:"#0A1628"}}>🏆 Mi Campeón del Mundial</h3>
-        {user.champPick?(
-          <><div style={{display:"flex",alignItems:"center",gap:"0.75rem",background:"#FEF3C7",borderRadius:10,padding:"0.75rem"}}><span style={{fontSize:"2rem"}}>{flag(user.champPick)}</span><div><div style={{fontWeight:800,fontSize:"1rem"}}>{user.champPick}</div><div style={{fontSize:"0.72rem",color:"#92400E"}}>{tournamentStarted?"🔒 Bloqueado":"✏️ Puedes cambiar hasta el primer partido"}</div></div></div>{!tournamentStarted&&<button onClick={onChampPick} style={{...btn,width:"100%",marginTop:"0.6rem",background:"#F3F4F6",color:"#374151",fontSize:"0.875rem"}}>✏️ Cambiar campeón</button>}</>
-        ):(
-          <><p style={{color:"#9CA3AF",fontSize:"0.875rem",marginBottom:"0.75rem"}}>{tournamentStarted?"❌ El torneo ya empezó, no puedes elegir campeón":"¡Elige tu campeón! Vale 15 puntos si aciertas."}</p>{!tournamentStarted&&<button onClick={onChampPick} style={{...btn,width:"100%",background:RED,color:"white"}}>🏆 Elegir Campeón (+15 pts)</button>}</>
-        )}
+        {user.champPick?(<><div style={{display:"flex",alignItems:"center",gap:"0.75rem",background:"#FEF3C7",borderRadius:10,padding:"0.75rem"}}><span style={{fontSize:"2rem"}}>{flag(user.champPick)}</span><div><div style={{fontWeight:800,fontSize:"1rem"}}>{user.champPick}</div><div style={{fontSize:"0.72rem",color:"#92400E"}}>{tournamentStarted?"🔒 Bloqueado":"✏️ Puedes cambiar"}</div></div></div>{!tournamentStarted&&<button onClick={onChampPick} style={{...btn,width:"100%",marginTop:"0.6rem",background:"#F3F4F6",color:"#374151",fontSize:"0.875rem"}}>✏️ Cambiar campeón</button>}</>):(<><p style={{color:"#9CA3AF",fontSize:"0.875rem",marginBottom:"0.75rem"}}>{tournamentStarted?"❌ Torneo en curso":"¡Elige tu campeón! Vale 15 puntos."}</p>{!tournamentStarted&&<button onClick={onChampPick} style={{...btn,width:"100%",background:RED,color:"white"}}>🏆 Elegir Campeón (+15 pts)</button>}</>)}
       </div>
       <div style={{background:"white",borderRadius:16,padding:"1.25rem",border:"1px solid #E5E7EB"}}>
         <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"1rem",color:"#0A1628"}}>🔑 Cambiar Contraseña</h3>
         {msg&&<div style={{borderRadius:8,padding:"0.6rem",marginBottom:"0.75rem",background:msg.startsWith("✅")?"#F0FDF4":"#FEF2F2",color:msg.startsWith("✅")?"#166534":"#DC2626",fontSize:"0.875rem",fontWeight:700}}>{msg}</div>}
         <input type="password" value={old} onChange={e=>setOld(e.target.value)} placeholder="Contraseña actual" style={{...inp,marginBottom:"0.6rem"}}/>
-        <input type="password" value={nw} onChange={e=>setNw(e.target.value)} placeholder="Nueva contraseña (mín. 6 caracteres)" style={{...inp,marginBottom:"0.75rem"}}/>
+        <input type="password" value={nw} onChange={e=>setNw(e.target.value)} placeholder="Nueva contraseña (mín. 6)" style={{...inp,marginBottom:"0.75rem"}}/>
         <button onClick={changePwd} disabled={!old||nw.length<6} style={{...btn,width:"100%",background:"#0A1628",color:"white",opacity:(!old||nw.length<6)?0.4:1,cursor:(!old||nw.length<6)?"not-allowed":"pointer"}}>Cambiar contraseña</button>
       </div>
     </div>
   );
 }
 
-// ── ADMIN TAB ───────────────────────────────────────────────────────────────
-function AdminTab({users,preds,matches,onCreateUser,onResetPwd}){
-  const[un,setUn]=useState("");const[dn,setDn]=useState("");const[pw,setPw]=useState("");const[msg,setMsg]=useState("");
-  const[resetU,setResetU]=useState(null);const[resetPw,setResetPw]=useState("");
+function AdminTab({users,preds,matches,onCreateUser,onResetPwd,league}){
+  const [un,setUn]=useState("");const [dn,setDn]=useState("");const [pw,setPw]=useState("");const [msg,setMsg]=useState("");
+  const [resetU,setResetU]=useState(null);const [resetPw,setResetPw]=useState("");
   const create=async()=>{
     if(!un||!pw)return;
     await onCreateUser(un.trim(),dn.trim()||un.trim(),pw,ok=>{setMsg(ok?`✅ Usuario "${un}" creado`:`❌ "${un}" ya existe`);if(ok){setUn("");setDn("");setPw("");}setTimeout(()=>setMsg(""),4000);});
   };
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
-      <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",color:"#0A1628",letterSpacing:"0.06em",marginBottom:"1rem"}}>👑 PANEL DE ADMIN</h2>
+      <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",color:"#0A1628",letterSpacing:"0.06em",marginBottom:"0.25rem"}}>👑 ADMIN</h2>
+      <div style={{fontSize:"0.82rem",color:"#6B7280",fontWeight:700,marginBottom:"1rem"}}>{league.emoji} {league.name}</div>
       <div style={{background:"white",borderRadius:16,padding:"1.25rem",marginBottom:"1rem",border:"1px solid #E5E7EB"}}>
         <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"1rem",color:"#0A1628"}}>➕ Crear Usuario</h3>
         {msg&&<div style={{borderRadius:8,padding:"0.6rem",marginBottom:"0.75rem",background:msg.startsWith("✅")?"#F0FDF4":"#FEF2F2",color:msg.startsWith("✅")?"#166534":"#DC2626",fontSize:"0.875rem",fontWeight:700}}>{msg}</div>}
@@ -390,7 +525,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd}){
         <button onClick={create} disabled={!un||!pw} style={{...btn,width:"100%",background:RED,color:"white",opacity:(!un||!pw)?0.4:1,cursor:(!un||!pw)?"not-allowed":"pointer"}}>Crear usuario</button>
       </div>
       <div style={{background:"white",borderRadius:16,border:"1px solid #E5E7EB",overflow:"hidden"}}>
-        <div style={{background:"#0A1628",color:"white",padding:"0.75rem 1rem",fontWeight:900,fontSize:"0.9rem"}}>👥 Participantes ({users.length}) · {LIGA_NAME}</div>
+        <div style={{background:"#0A1628",color:"white",padding:"0.75rem 1rem",fontWeight:900,fontSize:"0.9rem"}}>👥 Participantes ({users.length})</div>
         {users.map((u,i)=>{const pts=userTotal(u.id,users,preds,matches);return(
           <div key={u.id} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.75rem 1rem",borderBottom:i<users.length-1?"1px solid #F3F4F6":"none"}}>
             <span style={{fontSize:"1.25rem"}}>{u.isAdmin?"👑":"⚽"}</span>
@@ -402,7 +537,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd}){
       {resetU&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"1rem"}}>
           <div style={{background:"white",borderRadius:18,padding:"1.5rem",width:"100%",maxWidth:340}}>
-            <h3 style={{fontWeight:900,marginBottom:"1rem",fontSize:"1rem"}}>🔑 Resetear contraseña de <span style={{color:"#DC2626"}}>{resetU.displayName||resetU.username}</span></h3>
+            <h3 style={{fontWeight:900,marginBottom:"1rem",fontSize:"1rem"}}>🔑 Resetear: <span style={{color:"#DC2626"}}>{resetU.displayName||resetU.username}</span></h3>
             <input type="text" value={resetPw} onChange={e=>setResetPw(e.target.value)} placeholder="Nueva contraseña" style={{...inp,marginBottom:"1rem"}}/>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>setResetU(null)} style={{...btn,flex:1,background:"#F3F4F6",color:"#374151"}}>Cancelar</button>
@@ -415,187 +550,134 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd}){
   );
 }
 
-// ── APP ROOT ─────────────────────────────────────────────────────────────────
+// ── APP ROOT ──────────────────────────────────────────────────────────────
 function App(){
-  const[screen,setScreen]=useState("loading");
-  const[user,setUser]=useState(null);
-  const[users,setUsers]=useState([]);
-  const[preds,setPreds]=useState({});
-  const[matches,setMatches]=useState([]);
-  const[tab,setTab]=useState("home");
-  const[loginErr,setLoginErr]=useState("");
-  const[loginBusy,setLoginBusy]=useState(false);
-  const[showChamp,setShowChamp]=useState(false);
+  const [screen,setScreen]=useState("loading");
+  const [leagues,setLeagues]=useState([]);
+  const [league,setLeague]=useState(null);
+  const [showCreateLeague,setShowCreateLeague]=useState(false);
+  const [user,setUser]=useState(null);
+  const [users,setUsers]=useState([]);
+  const [preds,setPreds]=useState({});
+  const [matches,setMatches]=useState([]);
+  const [tab,setTab]=useState("home");
+  const [loginErr,setLoginErr]=useState("");
+  const [loginBusy,setLoginBusy]=useState(false);
+  const [showChamp,setShowChamp]=useState(false);
+
+  // League-specific storage keys
+  const lk=k=>league?`nf_${league.id}_${k}`:k;
 
   useEffect(()=>{boot();},[]);
 
   async function boot(){
-    let u=await db.get("wc2026_users")||[];
-    if(!u.length){
-      const admin={id:"admin",username:"admin",displayName:"Admin",pwd:hashPwd("Mundial2026!"),isAdmin:true,champPick:null,createdAt:Date.now()};
-      await db.set("wc2026_users",[admin]);u=[admin];
+    let lgs=await db.get("nf_leagues");
+    if(!lgs||!lgs.length){
+      // Migrate existing data or create default league
+      const defaultLeague={id:"default",name:"¿Dónde está la bolita? 😉",emoji:"⚽",createdAt:Date.now()};
+      const oldUsers=await db.get("wc2026_users");
+      if(oldUsers){
+        await db.set("nf_default_users",oldUsers);
+        const oldPreds=await db.get("wc2026_preds");
+        if(oldPreds)await db.set("nf_default_preds",oldPreds);
+      } else {
+        const admin={id:"admin",username:"admin",displayName:"Admin",pwd:hashPwd("Mundial2026!"),isAdmin:true,champPick:null,createdAt:Date.now()};
+        await db.set("nf_default_users",[admin]);
+      }
+      lgs=[defaultLeague];
+      await db.set("nf_leagues",lgs);
     }
-    setUsers(u);
-    setPreds(await db.get("wc2026_preds")||{});
-    const cache=await db.get("wc2026_matches");
-    const cacheT=await db.get("wc2026_match_t");
-    // Force refresh if cached matches are empty or too old
+    setLeagues(lgs);
+    const cache=await db.get("nf_matches")||await db.get("wc2026_matches");
+    const cacheT=await db.get("nf_match_t")||await db.get("wc2026_match_t");
     if(cache&&cacheT&&Date.now()-cacheT<CACHE_MS&&cache.length>0)setMatches(cache);
     else await fetchMatches();
     const splash=document.getElementById("splash");
     if(splash){splash.classList.add("hide");setTimeout(()=>splash.remove(),500);}
-    setScreen("login");
-  }
-
-
-  function getHardcodedMatches(){
-    const M=(id,group,md,date,home,hShort,away,aShort)=>({
-      id,stage:"GROUP_STAGE",group,matchday:md,
-      utcDate:date,status:"TIMED",
-      homeTeam:{name:home,shortName:hShort},
-      awayTeam:{name:away,shortName:aShort},
-      score:{fullTime:{home:null,away:null},winner:null,duration:null}
-    });
-    return[
-      // ── JORNADA 1 ─────────────────────────────────────────────────
-      M(1,"Group A",1,"2026-06-11T19:00:00Z","Mexico","México","South Africa","Sudáfrica"),
-      M(2,"Group A",1,"2026-06-12T02:00:00Z","South Korea","Corea Sur","Czechia","Chequia"),
-      M(3,"Group B",1,"2026-06-12T19:00:00Z","Canada","Canadá","Bosnia and Herzegovina","Bosnia"),
-      M(4,"Group D",1,"2026-06-13T01:00:00Z","United States","EE.UU.","Paraguay","Paraguay"),
-      M(5,"Group B",1,"2026-06-13T19:00:00Z","Qatar","Qatar","Switzerland","Suiza"),
-      M(6,"Group C",1,"2026-06-13T22:00:00Z","Brazil","Brasil","Morocco","Marruecos"),
-      M(7,"Group C",1,"2026-06-14T01:00:00Z","Haiti","Haití","Scotland","Escocia"),
-      M(8,"Group D",1,"2026-06-14T04:00:00Z","Australia","Australia","Turkey","Turquía"),
-      M(9,"Group E",1,"2026-06-14T17:00:00Z","Germany","Alemania","Curaçao","Curazao"),
-      M(10,"Group F",1,"2026-06-14T20:00:00Z","Netherlands","P.Bajos","Japan","Japón"),
-      M(11,"Group E",1,"2026-06-14T23:00:00Z","Côte d'Ivoire","C.Marfil","Ecuador","Ecuador"),
-      M(12,"Group F",1,"2026-06-15T02:00:00Z","Tunisia","Túnez","Sweden","Suecia"),
-      M(13,"Group H",1,"2026-06-15T16:00:00Z","Spain","España","Cape Verde","Cabo Verde"),
-      M(14,"Group G",1,"2026-06-15T19:00:00Z","Belgium","Bélgica","Egypt","Egipto"),
-      M(15,"Group H",1,"2026-06-15T22:00:00Z","Saudi Arabia","Arabia S.","Uruguay","Uruguay"),
-      M(16,"Group G",1,"2026-06-16T01:00:00Z","Iran","Irán","New Zealand","N.Zelanda"),
-      M(17,"Group I",1,"2026-06-16T19:00:00Z","France","Francia","Senegal","Senegal"),
-      M(18,"Group I",1,"2026-06-16T22:00:00Z","Iraq","Iraq","Norway","Noruega"),
-      M(19,"Group J",1,"2026-06-17T01:00:00Z","Argentina","Argentina","Algeria","Argelia"),
-      M(20,"Group J",1,"2026-06-17T04:00:00Z","Austria","Austria","Jordan","Jordania"),
-      M(21,"Group K",1,"2026-06-17T17:00:00Z","Portugal","Portugal","DR Congo","RD Congo"),
-      M(22,"Group L",1,"2026-06-17T20:00:00Z","England","Inglaterra","Croatia","Croacia"),
-      M(23,"Group L",1,"2026-06-17T23:00:00Z","Ghana","Ghana","Panama","Panamá"),
-      M(24,"Group K",1,"2026-06-18T02:00:00Z","Uzbekistan","Uzbekistán","Colombia","Colombia"),
-      // ── JORNADA 2 ─────────────────────────────────────────────────
-      M(25,"Group A",2,"2026-06-18T16:00:00Z","Czechia","Chequia","South Africa","Sudáfrica"),
-      M(26,"Group B",2,"2026-06-18T19:00:00Z","Switzerland","Suiza","Bosnia and Herzegovina","Bosnia"),
-      M(27,"Group B",2,"2026-06-18T22:00:00Z","Canada","Canadá","Qatar","Qatar"),
-      M(28,"Group A",2,"2026-06-19T01:00:00Z","Mexico","México","South Korea","Corea Sur"),
-      M(29,"Group D",2,"2026-06-19T19:00:00Z","United States","EE.UU.","Australia","Australia"),
-      M(30,"Group C",2,"2026-06-19T19:00:00Z","Scotland","Escocia","Morocco","Marruecos"),
-      M(31,"Group C",2,"2026-06-20T01:00:00Z","Brazil","Brasil","Haiti","Haití"),
-      M(32,"Group D",2,"2026-06-20T04:00:00Z","Turkey","Turquía","Paraguay","Paraguay"),
-      M(33,"Group F",2,"2026-06-20T17:00:00Z","Netherlands","P.Bajos","Sweden","Suecia"),
-      M(34,"Group E",2,"2026-06-20T20:00:00Z","Germany","Alemania","Côte d'Ivoire","C.Marfil"),
-      M(35,"Group E",2,"2026-06-21T00:00:00Z","Ecuador","Ecuador","Curaçao","Curazao"),
-      M(36,"Group F",2,"2026-06-21T04:00:00Z","Tunisia","Túnez","Japan","Japón"),
-      M(37,"Group H",2,"2026-06-21T16:00:00Z","Spain","España","Saudi Arabia","Arabia S."),
-      M(38,"Group G",2,"2026-06-21T19:00:00Z","Belgium","Bélgica","Iran","Irán"),
-      M(39,"Group H",2,"2026-06-21T22:00:00Z","Uruguay","Uruguay","Cape Verde","Cabo Verde"),
-      M(40,"Group G",2,"2026-06-22T01:00:00Z","New Zealand","N.Zelanda","Egypt","Egipto"),
-      M(41,"Group J",2,"2026-06-22T17:00:00Z","Argentina","Argentina","Austria","Austria"),
-      M(42,"Group I",2,"2026-06-22T21:00:00Z","France","Francia","Iraq","Iraq"),
-      M(43,"Group I",2,"2026-06-23T00:00:00Z","Norway","Noruega","Senegal","Senegal"),
-      M(44,"Group J",2,"2026-06-23T03:00:00Z","Jordan","Jordania","Algeria","Argelia"),
-      M(45,"Group K",2,"2026-06-23T17:00:00Z","Portugal","Portugal","Uzbekistan","Uzbekistán"),
-      M(46,"Group L",2,"2026-06-23T20:00:00Z","England","Inglaterra","Ghana","Ghana"),
-      M(47,"Group L",2,"2026-06-23T23:00:00Z","Panama","Panamá","Croatia","Croacia"),
-      M(48,"Group K",2,"2026-06-24T02:00:00Z","Colombia","Colombia","DR Congo","RD Congo"),
-      // ── JORNADA 3 ─────────────────────────────────────────────────
-      M(49,"Group B",3,"2026-06-24T19:00:00Z","Switzerland","Suiza","Canada","Canadá"),
-      M(50,"Group B",3,"2026-06-24T19:00:00Z","Bosnia and Herzegovina","Bosnia","Qatar","Qatar"),
-      M(51,"Group C",3,"2026-06-24T22:00:00Z","Brazil","Brasil","Scotland","Escocia"),
-      M(52,"Group C",3,"2026-06-24T22:00:00Z","Morocco","Marruecos","Haiti","Haití"),
-      M(53,"Group A",3,"2026-06-25T01:00:00Z","Mexico","México","Czechia","Chequia"),
-      M(54,"Group A",3,"2026-06-25T01:00:00Z","South Korea","Corea Sur","South Africa","Sudáfrica"),
-      M(55,"Group E",3,"2026-06-25T20:00:00Z","Ecuador","Ecuador","Germany","Alemania"),
-      M(56,"Group E",3,"2026-06-25T20:00:00Z","Curaçao","Curazao","Côte d'Ivoire","C.Marfil"),
-      M(57,"Group F",3,"2026-06-25T23:00:00Z","Tunisia","Túnez","Netherlands","P.Bajos"),
-      M(58,"Group F",3,"2026-06-25T23:00:00Z","Japan","Japón","Sweden","Suecia"),
-      M(59,"Group D",3,"2026-06-26T02:00:00Z","United States","EE.UU.","Turkey","Turquía"),
-      M(60,"Group D",3,"2026-06-26T02:00:00Z","Paraguay","Paraguay","Australia","Australia"),
-      M(61,"Group I",3,"2026-06-26T19:00:00Z","Norway","Noruega","France","Francia"),
-      M(62,"Group I",3,"2026-06-26T19:00:00Z","Senegal","Senegal","Iraq","Iraq"),
-      M(63,"Group H",3,"2026-06-27T00:00:00Z","Uruguay","Uruguay","Spain","España"),
-      M(64,"Group H",3,"2026-06-27T00:00:00Z","Cape Verde","Cabo Verde","Saudi Arabia","Arabia S."),
-      M(65,"Group G",3,"2026-06-27T03:00:00Z","New Zealand","N.Zelanda","Belgium","Bélgica"),
-      M(66,"Group G",3,"2026-06-27T03:00:00Z","Egypt","Egipto","Iran","Irán"),
-      M(67,"Group J",3,"2026-06-27T19:00:00Z","Argentina","Argentina","Jordan","Jordania"),
-      M(68,"Group J",3,"2026-06-27T19:00:00Z","Algeria","Argelia","Austria","Austria"),
-      M(69,"Group K",3,"2026-06-27T22:00:00Z","Portugal","Portugal","Colombia","Colombia"),
-      M(70,"Group K",3,"2026-06-27T22:00:00Z","Uzbekistan","Uzbekistán","DR Congo","RD Congo"),
-      M(71,"Group L",3,"2026-06-28T01:00:00Z","England","Inglaterra","Panama","Panamá"),
-      M(72,"Group L",3,"2026-06-28T01:00:00Z","Croatia","Croacia","Ghana","Ghana"),
-    ];
+    setScreen("welcome");
   }
 
   async function fetchMatches(){
-    // Try API first, fall back to hardcoded schedule
     try{
       const r=await fetch(`${WC_API}/matches`,{headers:{"X-Auth-Token":API_KEY}});
-      if(!r.ok)throw new Error(`${r.status}`);
-      const d=await r.json();
-      const ms=d.matches||[];
-      if(ms.length>0){
-        setMatches(ms);await db.set("wc2026_matches",ms);await db.set("wc2026_match_t",Date.now());
-        return;
-      }
-    }catch(e){console.error("API not available, using hardcoded schedule");}
-    // Use hardcoded schedule
+      if(!r.ok)throw new Error();
+      const d=await r.json();const ms=d.matches||[];
+      if(ms.length>0){setMatches(ms);await db.set("nf_matches",ms);await db.set("nf_match_t",Date.now());return;}
+    }catch{}
     const ms=getHardcodedMatches();
-    setMatches(ms);
-    await db.set("wc2026_matches",ms);
-    await db.set("wc2026_match_t",Date.now());
+    setMatches(ms);await db.set("nf_matches",ms);await db.set("nf_match_t",Date.now());
+  }
+
+  async function selectLeague(lg){
+    setLeague(lg);setLoginErr("");setScreen("login");
+  }
+
+  async function createLeague(name,emoji,adminUser,adminPwd){
+    const id=randId();
+    const newLeague={id,name,emoji,createdAt:Date.now()};
+    const admin={id:"admin_"+id,username:adminUser,displayName:adminUser,pwd:hashPwd(adminPwd),isAdmin:true,champPick:null,createdAt:Date.now()};
+    await db.set(`nf_${id}_users`,[admin]);
+    await db.set(`nf_${id}_preds`,{});
+    const updated=[...leagues,newLeague];
+    await db.set("nf_leagues",updated);
+    setLeagues(updated);
+    setShowCreateLeague(false);
+    alert(`✅ Liga "${name}" creada. El admin es "${adminUser}".`);
   }
 
   const tournamentStarted=useMemo(()=>{const first=matches.find(m=>m.stage==="GROUP_STAGE");return first?started(first.utcDate):false;},[matches]);
 
-  function login(username,password){
+  async function login(username,password){
     setLoginBusy(true);setLoginErr("");
-    const found=users.find(u=>u.username.toLowerCase()===username.toLowerCase()&&u.pwd===hashPwd(password));
+    const all=await db.get(lk("users"))||[];
+    const found=all.find(u=>u.username.toLowerCase()===username.toLowerCase()&&u.pwd===hashPwd(password));
     setLoginBusy(false);
     if(!found)return setLoginErr("Usuario o contraseña incorrectos");
-    setUser(found);setScreen("app");setTab("home");
+    setUser(found);setUsers(all);
+    setPreds(await db.get(lk("preds"))||{});
+    setScreen("app");setTab("home");
     if(!found.champPick&&!tournamentStarted)setShowChamp(true);
   }
 
   async function pickChamp(teamName){
     const all=[...users];const idx=all.findIndex(u=>u.id===user.id);if(idx===-1)return;
     all[idx].champPick=teamName;setUsers(all);setUser(u=>({...u,champPick:teamName}));
-    await db.set("wc2026_users",all);setShowChamp(false);
+    await db.set(lk("users"),all);setShowChamp(false);
   }
 
   async function savePred(matchId,home,away){
     const key=`${user.id}_${matchId}`;const np={...preds,[key]:{home,away,ts:Date.now()}};
-    setPreds(np);await db.set("wc2026_preds",np);
+    setPreds(np);await db.set(lk("preds"),np);
   }
 
   async function updatePwd(oldP,newP,cb){
     const all=[...users];const idx=all.findIndex(u=>u.id===user.id);
     if(idx===-1||all[idx].pwd!==hashPwd(oldP))return cb(false);
-    all[idx].pwd=hashPwd(newP);setUsers(all);await db.set("wc2026_users",all);cb(true);
+    all[idx].pwd=hashPwd(newP);setUsers(all);await db.set(lk("users"),all);cb(true);
   }
 
   async function createUser(username,displayName,password,cb){
     const all=[...users];
     if(all.find(u=>u.username.toLowerCase()===username.toLowerCase()))return cb(false);
-    all.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),username,displayName,pwd:hashPwd(password),isAdmin:false,champPick:null,createdAt:Date.now()});
-    setUsers(all);await db.set("wc2026_users",all);cb(true);
+    all.push({id:randId(),username,displayName,pwd:hashPwd(password),isAdmin:false,champPick:null,createdAt:Date.now()});
+    setUsers(all);await db.set(lk("users"),all);cb(true);
   }
 
   async function resetPwd(uid,pwd){
     const all=[...users];const idx=all.findIndex(u=>u.id===uid);if(idx===-1)return;
-    all[idx].pwd=hashPwd(pwd);setUsers(all);await db.set("wc2026_users",all);
+    all[idx].pwd=hashPwd(pwd);setUsers(all);await db.set(lk("users"),all);
   }
 
   if(screen==="loading")return null;
-  if(screen==="login")return <LoginScreen onLogin={login} error={loginErr} busy={loginBusy}/>;
+
+  if(screen==="welcome")return(
+    <>
+      {showCreateLeague&&<CreateLeagueModal onSave={createLeague} onClose={()=>setShowCreateLeague(false)}/>}
+      <WelcomeScreen leagues={leagues} onSelect={selectLeague} onCreateLeague={()=>setShowCreateLeague(true)}/>
+    </>
+  );
+
+  if(screen==="login")return <LoginScreen league={league} onLogin={login} onBack={()=>setScreen("welcome")} error={loginErr} busy={loginBusy}/>;
 
   const TABS=[{id:"home",icon:"🏠",label:"Inicio"},{id:"predictions",icon:"⚽",label:"Pronósticos"},{id:"leaderboard",icon:"🏆",label:"Tabla"},{id:"profile",icon:"👤",label:"Perfil"},...(user?.isAdmin?[{id:"admin",icon:"👑",label:"Admin"}]:[])];
 
@@ -603,22 +685,29 @@ function App(){
     <div style={{minHeight:"100vh",background:"#F3F4F6",paddingBottom:72}}>
       {showChamp&&<ChampionModal onPick={pickChamp}/>}
       <div style={{background:NAVY,color:"white",padding:"0.7rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.35)"}}>
-        <div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.35rem",color:GOLD,letterSpacing:"0.1em",lineHeight:1}}>{APP_NAME}</div><div style={{fontSize:"0.62rem",opacity:0.55,fontWeight:600,letterSpacing:"0.08em"}}>{LIGA_NAME}</div></div>
+        <div>
+          <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.2rem",color:GOLD,letterSpacing:"0.1em",lineHeight:1}}>{APP_NAME}</div>
+          <div style={{fontSize:"0.6rem",opacity:0.6,fontWeight:600}}>{league?.emoji} {league?.name}</div>
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={fetchMatches} title="Actualizar partidos" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer"}}>🔄</button>
-          <div><div style={{fontWeight:800,fontSize:"0.85rem",textAlign:"right"}}>{user?.displayName||user?.username}</div><button onClick={()=>{setScreen("login");setUser(null);}} style={{background:"none",border:"none",color:"rgba(255,255,255,0.5)",fontSize:"0.68rem",cursor:"pointer",padding:0,fontFamily:"'Nunito',sans-serif",display:"block",textAlign:"right"}}>Salir →</button></div>
+          <button onClick={fetchMatches} title="Actualizar" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer"}}>🔄</button>
+          <button onClick={()=>setScreen("welcome")} title="Cambiar liga" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer"}}>🏠</button>
+          <div>
+            <div style={{fontWeight:800,fontSize:"0.85rem",textAlign:"right"}}>{user?.displayName||user?.username}</div>
+            <button onClick={()=>{setScreen("welcome");setUser(null);}} style={{background:"none",border:"none",color:"rgba(255,255,255,0.5)",fontSize:"0.68rem",cursor:"pointer",padding:0,fontFamily:"'Nunito',sans-serif",display:"block",textAlign:"right"}}>Salir →</button>
+          </div>
         </div>
       </div>
       <div style={{paddingTop:4}}>
-        {tab==="home"&&<HomeTab user={user} users={users} preds={preds} matches={matches} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted}/>}
+        {tab==="home"&&<HomeTab user={user} users={users} preds={preds} matches={matches} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
         {tab==="predictions"&&<PredictionsTab user={user} preds={preds} matches={matches} onSave={savePred}/>}
-        {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matches}/>}
-        {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted}/>}
-        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matches} onCreateUser={createUser} onResetPwd={resetPwd}/>}
+        {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matches} league={league}/>}
+        {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
+        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matches} onCreateUser={createUser} onResetPwd={resetPwd} league={league}/>}
       </div>
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
         {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,border:"none",background:"none",padding:"0.6rem 0.25rem",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",color:tab===t.id?"#C41E3A":"#9CA3AF",fontFamily:"'Nunito',sans-serif",transition:"color .15s"}}>
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,border:"none",background:"none",padding:"0.6rem 0.25rem",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",color:tab===t.id?"#C41E3A":"#9CA3AF",fontFamily:"'Nunito',sans-serif"}}>
             <span style={{fontSize:"1.3rem"}}>{t.icon}</span>
             <span style={{fontSize:"0.62rem",fontWeight:tab===t.id?900:600}}>{t.label}</span>
           </button>
