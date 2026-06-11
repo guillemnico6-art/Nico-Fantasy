@@ -505,9 +505,34 @@ function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted,league}){
   );
 }
 
-function AdminTab({users,preds,matches,onCreateUser,onResetPwd,league}){
+function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,league}){
   const [un,setUn]=useState("");const [dn,setDn]=useState("");const [pw,setPw]=useState("");const [msg,setMsg]=useState("");
   const [resetU,setResetU]=useState(null);const [resetPw,setResetPw]=useState("");
+  const [adminSection,setAdminSection]=useState("results");
+  // Local score state: {matchId: {home, away}}
+  const [scores,setScores]=useState({});
+  const [saving,setSaving]=useState({});
+  const [saved,setSaved]=useState({});
+
+  // Matches that have already started (past kickoff time)
+  const playedMatches=useMemo(()=>
+    matches.filter(m=>started(m.utcDate))
+    .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)),
+  [matches]);
+
+  const saveScore=async(matchId)=>{
+    const s=scores[matchId];
+    if(!s||s.home===""||s.away==="")return;
+    setSaving(v=>({...v,[matchId]:true}));
+    await onSaveResult(matchId,+s.home,+s.away);
+    setSaving(v=>({...v,[matchId]:false}));
+    setSaved(v=>({...v,[matchId]:true}));
+    setTimeout(()=>setSaved(v=>({...v,[matchId]:false})),3000);
+  };
+
+  const setScore=(matchId,field,val)=>{
+    setScores(v=>({...v,[matchId]:{...(v[matchId]||{home:"",away:""}), [field]:val}}));
+  };
   const create=async()=>{
     if(!un||!pw)return;
     await onCreateUser(un.trim(),dn.trim()||un.trim(),pw,ok=>{setMsg(ok?`✅ Usuario "${un}" creado`:`❌ "${un}" ya existe`);if(ok){setUn("");setDn("");setPw("");}setTimeout(()=>setMsg(""),4000);});
@@ -516,6 +541,62 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,league}){
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
       <h2 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",color:"#0A1628",letterSpacing:"0.06em",marginBottom:"0.25rem"}}>👑 ADMIN</h2>
       <div style={{fontSize:"0.82rem",color:"#6B7280",fontWeight:700,marginBottom:"1rem"}}>{league.emoji} {league.name}</div>
+
+      {/* Section tabs */}
+      <div style={{display:"flex",gap:8,marginBottom:"1rem"}}>
+        {[["results","⚽ Resultados"],["users","👥 Usuarios"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setAdminSection(id)} style={{...btn,flex:1,padding:"0.55rem",fontSize:"0.85rem",background:adminSection===id?RED:"#F3F4F6",color:adminSection===id?"white":"#374151",borderRadius:10}}>{label}</button>
+        ))}
+      </div>
+
+      {/* RESULTS SECTION */}
+      {adminSection==="results"&&(
+        <div>
+          <div style={{background:"#FEF3C7",borderRadius:12,padding:"0.75rem 1rem",marginBottom:"1rem",fontSize:"0.78rem",color:"#92400E",fontWeight:700}}>
+            ⚡ Los resultados se aplican a <strong>todas las ligas</strong> a la vez. Solo necesitas introducirlos una vez.
+          </div>
+          {playedMatches.length===0?(
+            <div style={{textAlign:"center",color:"#9CA3AF",padding:"3rem 0",fontSize:"0.9rem"}}>Todavía no ha empezado ningún partido</div>
+          ):playedMatches.map(m=>{
+            const hasResult=m.score?.fullTime?.home!==null&&m.score?.fullTime?.home!==undefined;
+            const sc=scores[m.id]||{home:hasResult?String(m.score.fullTime.home):"",away:hasResult?String(m.score.fullTime.away):""};
+            const isSaved=saved[m.id];const isSaving=saving[m.id];
+            return(
+              <div key={m.id} style={{background:"white",borderRadius:14,padding:"0.9rem",marginBottom:"0.6rem",border:`2px solid ${hasResult?"#22C55E":"#E5E7EB"}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
+                  <span style={{fontSize:"0.72rem",color:"#9CA3AF",fontWeight:600}}>{fDate(m.utcDate)} · {m.group||""}</span>
+                  {hasResult&&<span style={{fontSize:"0.68rem",fontWeight:800,background:"#DCFCE7",color:"#166534",padding:"0.15rem 0.5rem",borderRadius:999}}>✅ Guardado</span>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                  <div style={{flex:1,textAlign:"right"}}>
+                    <div style={{fontSize:"1.5rem"}}>{flag(m.homeTeam?.name)}</div>
+                    <div style={{fontSize:"0.75rem",fontWeight:800,color:"#1F2937",marginTop:2}}>{m.homeTeam?.shortName||m.homeTeam?.name}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,minWidth:130,justifyContent:"center"}}>
+                    <input type="number" min="0" max="20" value={sc.home}
+                      onChange={e=>setScore(m.id,"home",e.target.value)}
+                      style={{width:50,height:50,textAlign:"center",fontSize:"1.3rem",fontWeight:900,border:"2px solid #D1D5DB",borderRadius:10,outline:"none",fontFamily:"'Nunito',sans-serif",background:"white"}}/>
+                    <span style={{fontWeight:900,color:"#9CA3AF",fontSize:"1.1rem"}}>-</span>
+                    <input type="number" min="0" max="20" value={sc.away}
+                      onChange={e=>setScore(m.id,"away",e.target.value)}
+                      style={{width:50,height:50,textAlign:"center",fontSize:"1.3rem",fontWeight:900,border:"2px solid #D1D5DB",borderRadius:10,outline:"none",fontFamily:"'Nunito',sans-serif",background:"white"}}/>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:"1.5rem"}}>{flag(m.awayTeam?.name)}</div>
+                    <div style={{fontSize:"0.75rem",fontWeight:800,color:"#1F2937",marginTop:2}}>{m.awayTeam?.shortName||m.awayTeam?.name}</div>
+                  </div>
+                </div>
+                <button onClick={()=>saveScore(m.id)} disabled={sc.home===""||sc.away===""} style={{...btn,width:"100%",marginTop:"0.6rem",padding:"0.5rem",fontSize:"0.85rem",background:isSaved?"linear-gradient(135deg,#16A34A,#15803D)":RED,color:"white",opacity:sc.home===""||sc.away===""?0.4:1,cursor:sc.home===""||sc.away===""?"not-allowed":"pointer"}}>
+                  {isSaving?"...":isSaved?"✅ ¡Guardado! Puntos actualizados":"💾 Guardar resultado"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* USERS SECTION */}
+      {adminSection==="users"&&(<>
       <div style={{background:"white",borderRadius:16,padding:"1.25rem",marginBottom:"1rem",border:"1px solid #E5E7EB"}}>
         <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"1rem",color:"#0A1628"}}>➕ Crear Usuario</h3>
         {msg&&<div style={{borderRadius:8,padding:"0.6rem",marginBottom:"0.75rem",background:msg.startsWith("✅")?"#F0FDF4":"#FEF2F2",color:msg.startsWith("✅")?"#166534":"#DC2626",fontSize:"0.875rem",fontWeight:700}}>{msg}</div>}
@@ -546,6 +627,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,league}){
           </div>
         </div>
       )}
+      </>)}
     </div>
   );
 }
@@ -668,6 +750,17 @@ function App(){
     all[idx].pwd=hashPwd(pwd);setUsers(all);await db.set(lk("users"),all);
   }
 
+  async function saveResult(matchId,home,away){
+    // Update the shared matches cache with the real result
+    const updated=matches.map(m=>{
+      if(m.id!==matchId)return m;
+      return{...m,status:"FINISHED",score:{...m.score,fullTime:{home,away},winner:home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW",duration:"REGULAR"}};
+    });
+    setMatches(updated);
+    await db.set("nf_matches",updated);
+    await db.set("nf_match_t",Date.now());
+  }
+
   if(screen==="loading")return null;
 
   if(screen==="welcome")return(
@@ -703,7 +796,7 @@ function App(){
         {tab==="predictions"&&<PredictionsTab user={user} preds={preds} matches={matches} onSave={savePred}/>}
         {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matches} league={league}/>}
         {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
-        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matches} onCreateUser={createUser} onResetPwd={resetPwd} league={league}/>}
+        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matches} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} league={league}/>}
       </div>
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
         {TABS.map(t=>(
