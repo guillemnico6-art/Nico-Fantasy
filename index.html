@@ -25,6 +25,12 @@
     #splash.hide{opacity:0;pointer-events:none}
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     .spin{animation:spin 1.8s linear infinite;display:inline-block}
+    @keyframes tabBounce{0%{transform:scale(1)}30%{transform:scale(1.4)}60%{transform:scale(0.88)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
+    @keyframes spinOnce{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    @keyframes homeJump{0%{transform:scale(1) translateY(0)}25%{transform:scale(1.35) translateY(-6px)}60%{transform:scale(0.9) translateY(2px)}80%{transform:scale(1.05) translateY(-1px)}100%{transform:scale(1) translateY(0)}}
+    .tab-bounce{animation:tabBounce 0.42s cubic-bezier(.36,.07,.19,.97)}
+    .spin-once{animation:spinOnce 0.55s ease-in-out}
+    .home-jump{animation:homeJump 0.48s cubic-bezier(.36,.07,.19,.97)}
   </style>
 </head>
 <body>
@@ -412,12 +418,48 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}
         {top5.map((u,i)=>{const pts=userTotal(u.id,users,preds,matches);const isMe=u.id===user.id;return(
           <div key={u.id} style={{display:"grid",gridTemplateColumns:"36px 1fr auto auto",gap:"0.5rem",alignItems:"center",padding:"0.75rem 1rem",background:isMe?"#FEF3C7":i===0?"#FFFBEB":"transparent",borderBottom:i<4?"1px solid #F3F4F6":"none"}}>
             <span style={{fontSize:i<3?"1.2rem":"0.88rem",fontWeight:900,textAlign:"center"}}>{medals[i]}</span>
-            <div style={{fontWeight:isMe?900:700,fontSize:"0.88rem"}}>{u.displayName||u.username}{isMe?" 👈":""}</div>
+            <div style={{fontWeight:isMe?900:700,fontSize:"0.88rem"}}>{u.displayName||u.username}{isMe?" ":""}}</div>
             <span style={{fontSize:"1.1rem"}}>{u.champPick?flag(u.champPick):"❓"}</span>
             <span style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.5rem",color:isMe?"#B45309":"#0A1628"}}>{pts}</span>
           </div>
         );})}
       </div>
+      <PointsGuide/>
+    </div>
+  );
+}
+
+function PointsGuide(){
+  const [open,setOpen]=useState(false);
+  const rows=[
+    ["⚽ Grupos · ganador correcto","3 pts","#DBEAFE","#1E40AF"],
+    ["⭐ Grupos · marcador exacto","5 pts","#FEF3C7","#92400E"],
+    ["⚽ Eliminat. · ganador en 90min","3 pts","#DBEAFE","#1E40AF"],
+    ["⭐ Eliminat. · marcador exacto en 90min","5 pts","#FEF3C7","#92400E"],
+    ["⏱️ Eliminat. · ganador en prórroga","2 pts","#F3F4F6","#374151"],
+    ["🥅 Eliminat. · ganador en penaltis","1 pt","#F3F4F6","#374151"],
+    ["❌ Fallo (ganador equivocado)","0 pts","#FEF2F2","#DC2626"],
+    ["🏆 Campeón del Mundial","15 pts","#FFFBEB","#B45309"],
+  ];
+  return(
+    <div style={{marginTop:"1rem"}}>
+      <button onClick={()=>setOpen(v=>!v)} style={{width:"100%",background:"white",border:"1px solid #E5E7EB",borderRadius:open?"12px 12px 0 0":12,padding:"0.75rem 1rem",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",fontFamily:"'Nunito',sans-serif",fontWeight:800,fontSize:"0.88rem",color:"#374151"}}>
+        <span>📊 Sistema de puntuación</span>
+        <span style={{fontSize:"0.75rem",color:"#9CA3AF",fontWeight:600}}>{open?"Cerrar ▲":"Ver ▼"}</span>
+      </button>
+      {open&&(
+        <div style={{background:"white",border:"1px solid #E5E7EB",borderTop:"none",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>
+          {rows.map(([label,pts,bg,color],i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0.6rem 1rem",background:i%2===0?"#FAFAFA":"white",borderBottom:i<rows.length-1?"1px solid #F3F4F6":"none"}}>
+              <span style={{fontSize:"0.78rem",color:"#374151",fontWeight:600,flex:1}}>{label}</span>
+              <span style={{background:bg,color,fontWeight:900,fontSize:"0.82rem",padding:"0.2rem 0.6rem",borderRadius:999,whiteSpace:"nowrap",marginLeft:8}}>{pts}</span>
+            </div>
+          ))}
+          <div style={{padding:"0.65rem 1rem",background:"#F0FDF4",fontSize:"0.72rem",color:"#166534",fontWeight:700}}>
+            💡 Desempate: gana quien tenga más marcadores exactos ⭐
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -646,6 +688,25 @@ function App(){
   const [loginErr,setLoginErr]=useState("");
   const [loginBusy,setLoginBusy]=useState(false);
   const [showChamp,setShowChamp]=useState(false);
+  const [animTab,setAnimTab]=useState(null);
+  const [animRefresh,setAnimRefresh]=useState(false);
+  const [animHome,setAnimHome]=useState(false);
+
+  const handleTabClick=(id)=>{
+    setAnimTab(id);
+    setTab(id);
+    setTimeout(()=>setAnimTab(null),450);
+  };
+  const handleRefresh=()=>{
+    setAnimRefresh(true);
+    fetchMatches();
+    setTimeout(()=>setAnimRefresh(false),600);
+  };
+  const handleHomeNav=()=>{
+    setAnimHome(true);
+    setScreen("welcome");setUser(null);
+    setTimeout(()=>setAnimHome(false),500);
+  };
 
   // League-specific storage keys
   const lk=k=>league?`nf_${league.id}_${k}`:k;
@@ -671,23 +732,37 @@ function App(){
     }
     setLeagues(lgs);
     const cache=await db.get("nf_matches")||await db.get("wc2026_matches");
-    const cacheT=await db.get("nf_match_t")||await db.get("wc2026_match_t");
-    if(cache&&cacheT&&Date.now()-cacheT<CACHE_MS&&cache.length>0)setMatches(cache);
-    else await fetchMatches();
+    // Always use Firebase data if it exists - never overwrite manual results on refresh
+    if(cache&&cache.length>0){
+      setMatches(cache);
+    } else {
+      await fetchMatches();
+    }
     const splash=document.getElementById("splash");
     if(splash){splash.classList.add("hide");setTimeout(()=>splash.remove(),500);}
     setScreen("welcome");
   }
 
   async function fetchMatches(){
+    // Load existing saved data first (may contain manually entered results)
+    const existing=await db.get("nf_matches")||[];
+    // Merge: always keep manually entered results (FINISHED status)
+    const merge=(base)=>base.map(m=>{
+      const saved=existing.find(s=>s.id===m.id);
+      return(saved&&saved.status==="FINISHED")?saved:m;
+    });
     try{
       const r=await fetch(`${WC_API}/matches`,{headers:{"X-Auth-Token":API_KEY}});
       if(!r.ok)throw new Error();
       const d=await r.json();const ms=d.matches||[];
-      if(ms.length>0){setMatches(ms);await db.set("nf_matches",ms);await db.set("nf_match_t",Date.now());return;}
+      if(ms.length>0){
+        const merged=merge(ms);
+        setMatches(merged);await db.set("nf_matches",merged);await db.set("nf_match_t",Date.now());return;
+      }
     }catch{}
-    const ms=getHardcodedMatches();
-    setMatches(ms);await db.set("nf_matches",ms);await db.set("nf_match_t",Date.now());
+    // Use hardcoded schedule merged with any saved results
+    const merged=merge(getHardcodedMatches());
+    setMatches(merged);await db.set("nf_matches",merged);await db.set("nf_match_t",Date.now());
   }
 
   async function selectLeague(lg){
@@ -707,7 +782,13 @@ function App(){
     alert(`✅ Liga "${name}" creada. El admin es "${adminUser}".`);
   }
 
-  const tournamentStarted=useMemo(()=>{const first=matches.find(m=>m.stage==="GROUP_STAGE");return first?started(first.utcDate):false;},[matches]);
+  // Champion pick locks when knockout phase starts (after group stage ends ~June 28)
+  // If no knockout matches exist yet, use July 1 as the cutoff date
+  const tournamentStarted=useMemo(()=>{
+    const firstKO=matches.find(m=>m.stage==="ROUND_OF_32"||m.stage==="ROUND_OF_16");
+    if(firstKO) return started(firstKO.utcDate);
+    return started("2026-07-01T00:00:00Z"); // Fallback: July 1
+  },[matches]);
 
   async function login(username,password){
     setLoginBusy(true);setLoginErr("");
@@ -783,8 +864,12 @@ function App(){
           <div style={{fontSize:"0.6rem",opacity:0.6,fontWeight:600}}>{league?.emoji} {league?.name}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <button onClick={fetchMatches} title="Actualizar" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer"}}>🔄</button>
-          <button onClick={()=>setScreen("welcome")} title="Cambiar liga" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer"}}>🏠</button>
+          <button onClick={handleRefresh} title="Actualizar" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer",overflow:"hidden",position:"relative"}}>
+                  <span className={animRefresh?"spin-once":""} style={{display:"inline-block"}}>🔄</span>
+                </button>
+          <button onClick={handleHomeNav} title="Cambiar liga" style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,color:"white",padding:"0.28rem 0.6rem",fontSize:"0.85rem",cursor:"pointer"}}>
+                  <span className={animHome?"home-jump":""} style={{display:"inline-block"}}>🏠</span>
+                </button>
           <div>
             <div style={{fontWeight:800,fontSize:"0.85rem",textAlign:"right"}}>{user?.displayName||user?.username}</div>
             <button onClick={()=>{setScreen("welcome");setUser(null);}} style={{background:"none",border:"none",color:"rgba(255,255,255,0.5)",fontSize:"0.68rem",cursor:"pointer",padding:0,fontFamily:"'Nunito',sans-serif",display:"block",textAlign:"right"}}>Salir →</button>
@@ -800,9 +885,11 @@ function App(){
       </div>
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
         {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,border:"none",background:"none",padding:"0.6rem 0.25rem",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",color:tab===t.id?"#C41E3A":"#9CA3AF",fontFamily:"'Nunito',sans-serif"}}>
-            <span style={{fontSize:"1.3rem"}}>{t.icon}</span>
-            <span style={{fontSize:"0.62rem",fontWeight:tab===t.id?900:600}}>{t.label}</span>
+          <button key={t.id} onClick={()=>handleTabClick(t.id)} style={{flex:1,border:"none",background:"none",padding:"0.6rem 0.25rem",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",color:tab===t.id?"#C41E3A":"#9CA3AF",fontFamily:"'Nunito',sans-serif",position:"relative",overflow:"hidden"}}>
+            {tab===t.id&&<div style={{position:"absolute",inset:0,background:"rgba(196,30,58,0.06)",borderRadius:8}}/>}
+            <span className={animTab===t.id?"tab-bounce":""} style={{fontSize:"1.3rem",display:"inline-block",transformOrigin:"center bottom"}}>{t.icon}</span>
+            <span style={{fontSize:"0.62rem",fontWeight:tab===t.id?900:600,transition:"font-weight 0.15s"}}>{t.label}</span>
+            {tab===t.id&&<div style={{position:"absolute",bottom:2,width:20,height:3,background:"#C41E3A",borderRadius:999}}/>}
           </button>
         ))}
       </div>
