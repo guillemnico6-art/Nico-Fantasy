@@ -73,7 +73,7 @@ const randId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 const FLAGS={"Argentina":"🇦🇷","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Jordan":"🇯🇴","Iraq":"🇮🇶","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪","Uzbekistan":"🇺🇿","Bosnia and Herzegovina":"🇧🇦","Haiti":"🇭🇹","Cape Verde":"🇨🇻","Curaçao":"🇨🇼","Curacao":"🇨🇼"};
 const flag=n=>FLAGS[n]||"⚽";
-const AVATARS=["🦁","🐯","🦊","🐺","🦅","🦈","🐉","🦋","⚡","🔥","🌟","🏆","🎯","🚀","🤴","🧙","🦸","🕵️","🐻","🐼","🎃","🤖","👻","💎","🎸"];
+const AVATARS=["⚽","🏆","🥇","🏅","🥅","🧤","👟","🎽","🏟️","🌍","🌎","🌏","⭐","💪","🔥","⚡","🎯","🦁","🦅","🦈","🐯","🦊","🐺","🐉","🦸","🤴","🧙","🦋","🚀","🎊","🥊","🏋️","⛹️","🤸","🧠","🔴","🟡","🏴","🎖️","🌟"];
 
 const CC={"Argentina":"ar","Brazil":"br","France":"fr","England":"gb-eng","Spain":"es","Germany":"de","Portugal":"pt","Netherlands":"nl","Belgium":"be","Italy":"it","Uruguay":"uy","Croatia":"hr","Mexico":"mx","United States":"us","Canada":"ca","Japan":"jp","South Korea":"kr","Korea Republic":"kr","Morocco":"ma","Senegal":"sn","Australia":"au","Ecuador":"ec","Denmark":"dk","Switzerland":"ch","Poland":"pl","Colombia":"co","Venezuela":"ve","Chile":"cl","Peru":"pe","Paraguay":"py","Qatar":"qa","Saudi Arabia":"sa","Iran":"ir","South Africa":"za","Nigeria":"ng","Ghana":"gh","Cameroon":"cm","Algeria":"dz","Tunisia":"tn","Egypt":"eg","DR Congo":"cd","Côte d'Ivoire":"ci","Serbia":"rs","Czechia":"cz","Czech Republic":"cz","Austria":"at","Turkey":"tr","Ukraine":"ua","Slovakia":"sk","Hungary":"hu","Romania":"ro","Sweden":"se","Norway":"no","Greece":"gr","New Zealand":"nz","Jamaica":"jm","Costa Rica":"cr","Panama":"pa","Honduras":"hn","El Salvador":"sv","Indonesia":"id","Jordan":"jo","Iraq":"iq","Scotland":"gb-sct","Wales":"gb-wls","Slovenia":"si","United Arab Emirates":"ae","Uzbekistan":"uz","Bosnia and Herzegovina":"ba","Haiti":"ht","Cape Verde":"cv","Curaçao":"cw","Curacao":"cw"};
 function FlagImg({name,size=48,style={}}){
@@ -624,12 +624,12 @@ function PredictionsTab({user,preds,matches,onSave}){
         {phases.map(p=><button key={p} onClick={()=>{setPhase(p);setDay(1);}} style={{...btn,padding:"0.35rem 0.85rem",fontSize:"0.78rem",borderRadius:999,whiteSpace:"nowrap",background:phase===p?RED:"#F3F4F6",color:phase===p?"white":"#374151"}}>{STAGE_SHORT[p]}</button>)}
       </div>
       {phase==="GROUP_STAGE"&&matchdays.length>1&&(
-        <div style={{background:"#F9FAFB",borderBottom:"1px solid #E5E7EB",padding:"0.45rem 1rem",display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
+        <div style={{background:"#F9FAFB",borderBottom:"1px solid #E5E7EB",padding:"0.45rem 1rem",display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none",position:"sticky",top:102,zIndex:7}}>
           {matchdays.map(d=><button key={d} onClick={()=>setDay(d)} style={{...btn,padding:"0.28rem 0.75rem",fontSize:"0.78rem",borderRadius:8,background:day===d?"#0A1628":"#E5E7EB",color:day===d?"white":"#374151"}}>Jornada {d}</button>)}
         </div>
       )}
       {/* Filter pills */}
-      <div style={{background:"#F9FAFB",borderBottom:"1px solid #E5E7EB",padding:"0.45rem 1rem",display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
+      <div style={{background:"#F9FAFB",borderBottom:"1px solid #E5E7EB",padding:"0.45rem 1rem",display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none",position:"sticky",top:102,zIndex:7}}>
         {filters.map(([id,label])=>(
           <button key={id} onClick={()=>setFilter(id)} style={{...btn,padding:"0.28rem 0.75rem",fontSize:"0.75rem",borderRadius:999,whiteSpace:"nowrap",background:filter===id?"#0A1628":"#E5E7EB",color:filter===id?"white":"#374151"}}>
             {label}
@@ -934,7 +934,7 @@ function App(){
   };
   const handleHomeNav=()=>{
     setAnimHome(true);
-    setScreen("welcome");setUser(null);
+    setTab("home");  // stay in league, just go to home tab
     setTimeout(()=>setAnimHome(false),500);
   };
 
@@ -1116,7 +1116,7 @@ function App(){
   const TABS=[{id:"home",icon:"🏠",label:"Inicio"},{id:"predictions",icon:"⚽",label:"Pronósticos"},{id:"leaderboard",icon:"🏆",label:"Tabla"},{id:"profile",icon:"👤",label:"Perfil"},...(user?.isAdmin?[{id:"admin",icon:"👑",label:"Admin"}]:[])];
 
   return(
-    <div className="fade-in" style={{minHeight:"100vh",background:"#F3F4F6",paddingBottom:72}}>
+    <div className="fade-in" style={{minHeight:"100vh",background:"#F3F4F6",paddingBottom:"calc(72px + env(safe-area-inset-bottom,0px))"}}>
       {showChamp&&<ChampionModal onPick={pickChamp}/>}
       <div style={{background:NAVY,color:"white",padding:"0.7rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.35)"}}>
         <div>
@@ -1143,7 +1143,7 @@ function App(){
         {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onUpdateAvatar={updateAvatar} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
         {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matchesWithResults} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} onDeleteLeague={deleteLeague} league={league}/>}
       </div>
-      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:9999,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)",WebkitTransform:"translateZ(0)",transform:"translateZ(0)",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
         {TABS.map(t=>(
           <button key={t.id} onClick={()=>handleTabClick(t.id)} style={{flex:1,border:"none",background:"none",padding:"0.6rem 0.25rem",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",color:tab===t.id?"#C41E3A":"#9CA3AF",fontFamily:"'Nunito',sans-serif",position:"relative",overflow:"hidden"}}>
             {tab===t.id&&<div style={{position:"absolute",inset:0,background:"rgba(196,30,58,0.06)",borderRadius:8}}/>}
