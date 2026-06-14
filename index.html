@@ -840,21 +840,23 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
       <div style={{background:"white",borderRadius:16,border:"1px solid #E5E7EB",overflow:"hidden"}}>
         <div style={{background:"#0A1628",color:"white",padding:"0.75rem 1rem",fontWeight:900,fontSize:"0.9rem"}}>👥 Participantes ({users.length})</div>
         {users.map((u,i)=>{const pts=userTotal(u.id,users,preds,matches);return(
-          <div key={u.id} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.75rem 1rem",borderBottom:i<users.length-1?"1px solid #F3F4F6":"none"}}>
-            <span style={{fontSize:"1.25rem"}}>{u.isAdmin?"👑":"⚽"}</span>
-            <div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.88rem"}}>{u.displayName||u.username}</div><div style={{fontSize:"0.72rem",color:"#9CA3AF"}}>@{u.username} · {pts}pts · {u.champPick?`${flag(u.champPick)} ${u.champPick}`:"sin campeón"}</div></div>
-            {!u.isAdmin&&(
-              <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                <button onClick={()=>setRevealPwd(revealPwd===u.id?null:u.id)} style={{background:"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.55rem",fontSize:"0.85rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}} title="Ver contraseña">👁️</button>
-                <button onClick={()=>{setResetU(u);setResetPw("");}} style={{background:"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.55rem",fontSize:"0.85rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}} title="Resetear contraseña">🔑</button>
+          <React.Fragment key={u.id}>
+            <div style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.75rem 1rem",borderBottom:(revealPwd!==u.id&&i<users.length-1)?"1px solid #F3F4F6":"none"}}>
+              <span style={{fontSize:"1.25rem"}}>{u.isAdmin?"👑":"⚽"}</span>
+              <div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.88rem"}}>{u.displayName||u.username}</div><div style={{fontSize:"0.72rem",color:"#9CA3AF"}}>@{u.username} · {pts}pts · {u.champPick?`${flag(u.champPick)} ${u.champPick}`:"sin campeón"}</div></div>
+              {!u.isAdmin&&(
+                <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                  <button onClick={()=>setRevealPwd(revealPwd===u.id?null:u.id)} style={{background:revealPwd===u.id?"#FEF3C7":"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.55rem",fontSize:"0.85rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}} title="Ver contraseña">👁️</button>
+                  <button onClick={()=>{setResetU(u);setResetPw("");}} style={{background:"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.55rem",fontSize:"0.85rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}} title="Resetear contraseña">🔑</button>
+                </div>
+              )}
+            </div>
+            {revealPwd===u.id&&(
+              <div style={{padding:"0.5rem 1rem 0.6rem 3.5rem",background:"#FFFBEB",borderBottom:i<users.length-1?"1px solid #F3F4F6":"none",fontSize:"0.8rem",color:"#92400E",fontWeight:700}}>
+                🔑 Contraseña: <span style={{fontFamily:"monospace",letterSpacing:"0.08em"}}>{u.pwdHint||"(contraseña cambiada por el usuario)"}</span>
               </div>
             )}
-          </div>
-          {revealPwd===u.id&&(
-            <div style={{padding:"0.5rem 1rem 0.6rem 3.5rem",background:"#FFFBEB",borderTop:"1px solid #FEF3C7",fontSize:"0.8rem",color:"#92400E",fontWeight:700}}>
-              🔑 Contraseña: <span style={{fontFamily:"monospace",letterSpacing:"0.08em"}}>{u.pwdHint||"(contraseña cambiada por el usuario)"}</span>
-            </div>
-          )}
+          </React.Fragment>
         );})}
       </div>
       {resetU&&(
