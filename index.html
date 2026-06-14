@@ -684,10 +684,18 @@ function App(){
   const [users,setUsers]=useState([]);
   const [preds,setPreds]=useState({});
   const [matches,setMatches]=useState([]);
+  const [results,setResults]=useState({}); // {matchId: {home,away,winner,duration}}
   const [tab,setTab]=useState("home");
   const [loginErr,setLoginErr]=useState("");
   const [loginBusy,setLoginBusy]=useState(false);
   const [showChamp,setShowChamp]=useState(false);
+
+  // Matches with admin results overlaid — single source of truth for ALL tabs
+  const matchesWithResults=useMemo(()=>matches.map(m=>{
+    const r=results[m.id];
+    if(!r)return m;
+    return{...m,status:"FINISHED",score:{fullTime:{home:r.home,away:r.away},winner:r.winner,duration:r.duration||"REGULAR",regularTime:{home:r.home,away:r.away}}};
+  }),[matches,results]);
   const [animTab,setAnimTab]=useState(null);
   const [animRefresh,setAnimRefresh]=useState(false);
   const [animHome,setAnimHome]=useState(false);
@@ -738,6 +746,9 @@ function App(){
     } else {
       await fetchMatches();
     }
+    // Load manually saved results (separate from match schedule)
+    const savedRes=await db.get("nf_results")||{};
+    setResults(savedRes);
     const splash=document.getElementById("splash");
     if(splash){splash.classList.add("hide");setTimeout(()=>splash.remove(),500);}
     setScreen("welcome");
@@ -832,13 +843,18 @@ function App(){
   }
 
   async function saveResult(matchId,home,away){
-    // Update the shared matches cache with the real result
-    const updated=matches.map(m=>{
+    const winner=home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW";
+    // 1. Save to nf_results (dedicated results store - never overwritten)
+    const updatedRes={...results,[matchId]:{home,away,winner,duration:"REGULAR"}};
+    setResults(updatedRes);
+    await db.set("nf_results",updatedRes);
+    // 2. Also update nf_matches so merge logic works if app reloads
+    const updatedMatches=matches.map(m=>{
       if(m.id!==matchId)return m;
-      return{...m,status:"FINISHED",score:{...m.score,fullTime:{home,away},winner:home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW",duration:"REGULAR"}};
+      return{...m,status:"FINISHED",score:{fullTime:{home,away},winner,duration:"REGULAR",regularTime:{home,away}}};
     });
-    setMatches(updated);
-    await db.set("nf_matches",updated);
+    setMatches(updatedMatches);
+    await db.set("nf_matches",updatedMatches);
     await db.set("nf_match_t",Date.now());
   }
 
@@ -877,11 +893,11 @@ function App(){
         </div>
       </div>
       <div style={{paddingTop:4}}>
-        {tab==="home"&&<HomeTab user={user} users={users} preds={preds} matches={matches} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
-        {tab==="predictions"&&<PredictionsTab user={user} preds={preds} matches={matches} onSave={savePred}/>}
-        {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matches} league={league}/>}
+        {tab==="home"&&<HomeTab user={user} users={users} preds={preds} matches={matchesWithResults} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
+        {tab==="predictions"&&<PredictionsTab user={user} preds={preds} matches={matchesWithResults} onSave={savePred}/>}
+        {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matchesWithResults} league={league}/>}
         {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
-        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matches} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} league={league}/>}
+        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matchesWithResults} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} league={league}/>}
       </div>
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
         {TABS.map(t=>(
