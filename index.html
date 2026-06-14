@@ -25,6 +25,10 @@
     #splash.hide{opacity:0;pointer-events:none}
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     .spin{animation:spin 1.8s linear infinite;display:inline-block}
+    @keyframes fadeSlideIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeSlideIn 0.45s ease both}
+    @keyframes popIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+    .pop-in{animation:popIn 0.35s cubic-bezier(.34,1.56,.64,1) both}
     @keyframes tabBounce{0%{transform:scale(1)}30%{transform:scale(1.4)}60%{transform:scale(0.88)}80%{transform:scale(1.1)}100%{transform:scale(1)}}
     @keyframes spinOnce{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
     @keyframes homeJump{0%{transform:scale(1) translateY(0)}25%{transform:scale(1.35) translateY(-6px)}60%{transform:scale(0.9) translateY(2px)}80%{transform:scale(1.05) translateY(-1px)}100%{transform:scale(1) translateY(0)}}
@@ -69,6 +73,7 @@ const randId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 const FLAGS={"Argentina":"🇦🇷","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Jordan":"🇯🇴","Iraq":"🇮🇶","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪","Uzbekistan":"🇺🇿","Bosnia and Herzegovina":"🇧🇦","Haiti":"🇭🇹","Cape Verde":"🇨🇻","Curaçao":"🇨🇼","Curacao":"🇨🇼"};
 const flag=n=>FLAGS[n]||"⚽";
+const AVATARS=["🦁","🐯","🦊","🐺","🦅","🦈","🐉","🦋","⚡","🔥","🌟","🏆","🎯","🚀","🤴","🧙","🦸","🕵️","🐻","🐼","🎃","🤖","👻","💎","🎸"];
 
 const CC={"Argentina":"ar","Brazil":"br","France":"fr","England":"gb-eng","Spain":"es","Germany":"de","Portugal":"pt","Netherlands":"nl","Belgium":"be","Italy":"it","Uruguay":"uy","Croatia":"hr","Mexico":"mx","United States":"us","Canada":"ca","Japan":"jp","South Korea":"kr","Korea Republic":"kr","Morocco":"ma","Senegal":"sn","Australia":"au","Ecuador":"ec","Denmark":"dk","Switzerland":"ch","Poland":"pl","Colombia":"co","Venezuela":"ve","Chile":"cl","Peru":"pe","Paraguay":"py","Qatar":"qa","Saudi Arabia":"sa","Iran":"ir","South Africa":"za","Nigeria":"ng","Ghana":"gh","Cameroon":"cm","Algeria":"dz","Tunisia":"tn","Egypt":"eg","DR Congo":"cd","Côte d'Ivoire":"ci","Serbia":"rs","Czechia":"cz","Czech Republic":"cz","Austria":"at","Turkey":"tr","Ukraine":"ua","Slovakia":"sk","Hungary":"hu","Romania":"ro","Sweden":"se","Norway":"no","Greece":"gr","New Zealand":"nz","Jamaica":"jm","Costa Rica":"cr","Panama":"pa","Honduras":"hn","El Salvador":"sv","Indonesia":"id","Jordan":"jo","Iraq":"iq","Scotland":"gb-sct","Wales":"gb-wls","Slovenia":"si","United Arab Emirates":"ae","Uzbekistan":"uz","Bosnia and Herzegovina":"ba","Haiti":"ht","Cape Verde":"cv","Curaçao":"cw","Curacao":"cw"};
 function FlagImg({name,size=48,style={}}){
@@ -406,9 +411,30 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}
   const leader=sorted[0]?userTotal(sorted[0].id,users,preds,matches):0;
   const nextMatch=useMemo(()=>matches.filter(m=>!started(m.utcDate)).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate))[0],[matches]);
   const maxPts=leader||1;
+  // Upcoming matches in <60min without prediction
+  const urgentMatches=useMemo(()=>{
+    const now=new Date(); const in60=new Date(now.getTime()+60*60*1000);
+    return matches.filter(m=>{
+      const t=new Date(m.utcDate);
+      return t>now&&t<=in60&&!preds[`${user.id}_${m.id}`];
+    });
+  },[matches,preds,user.id]);
 
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
+
+      {/* ── URGENT NOTIFICATION ── */}
+      {urgentMatches.map(m=>(
+        <div key={m.id} className="pop-in" style={{background:"linear-gradient(135deg,#DC2626,#EA580C)",borderRadius:14,padding:"0.75rem 1rem",marginBottom:"0.75rem",color:"white",display:"flex",alignItems:"center",gap:"0.75rem"}}>
+          <span style={{fontSize:"1.5rem"}}>⚠️</span>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:800,fontSize:"0.85rem"}}>¡Empieza pronto! Sin pronóstico</div>
+            <div style={{fontSize:"0.75rem",opacity:0.85,marginTop:2}}>
+              <FlagImg name={m.homeTeam?.name} size={16} style={{verticalAlign:"middle",marginRight:3}}/>{m.homeTeam?.name} vs <FlagImg name={m.awayTeam?.name} size={16} style={{verticalAlign:"middle",marginRight:3}}/>{m.awayTeam?.name} · {fTime(m.utcDate)}
+            </div>
+          </div>
+        </div>
+      ))}
 
       {/* ── HERO CARD ── */}
       <div style={{background:NAVY,borderRadius:18,padding:"1.25rem",marginBottom:"1rem",color:"white",overflow:"hidden"}}>
@@ -445,7 +471,10 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}
                 <div key={u.id} style={{display:"flex",alignItems:"center",gap:7}}>
                   <span style={{fontSize:14,minWidth:22}}>{medals[i]}</span>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:"0.75rem",fontWeight:isMe?700:500,color:isMe?GOLD:"white",marginBottom:2}}>{u.displayName||u.username}{isMe?" (tú)":""}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
+                      {u.avatar&&<span style={{fontSize:"0.9rem"}}>{u.avatar}</span>}
+                      <span style={{fontSize:"0.75rem",fontWeight:isMe?700:500,color:isMe?GOLD:"white"}}>{u.displayName||u.username}{isMe?" (tú)":""}</span>
+                    </div>
                     <div style={{background:`rgba(255,255,255,${i===0?0.25:0.15})`,borderRadius:4,height:6,width:`${barW}%`}}/>
                   </div>
                   <span style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.65)",minWidth:32,textAlign:"right"}}>{pts}pts</span>
@@ -575,9 +604,20 @@ function PointsGuide(){
 function PredictionsTab({user,preds,matches,onSave}){
   const phases=useMemo(()=>STAGE_ORDER.filter(s=>matches.some(m=>m.stage===s)),[matches]);
   const [phase,setPhase]=useState(phases[0]||"GROUP_STAGE");const [day,setDay]=useState(1);
+  const [filter,setFilter]=useState("all");
   const phaseMatches=useMemo(()=>matches.filter(m=>m.stage===phase).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)),[matches,phase]);
   const matchdays=useMemo(()=>phase==="GROUP_STAGE"?[...new Set(phaseMatches.map(m=>m.matchday))].sort((a,b)=>a-b):[],[phaseMatches,phase]);
-  const shown=useMemo(()=>phase==="GROUP_STAGE"?phaseMatches.filter(m=>m.matchday===day):phaseMatches,[phaseMatches,phase,day]);
+  const byDay=useMemo(()=>phase==="GROUP_STAGE"?phaseMatches.filter(m=>m.matchday===day):phaseMatches,[phaseMatches,phase,day]);
+  const shown=useMemo(()=>{
+    switch(filter){
+      case "pending": return byDay.filter(m=>!started(m.utcDate));
+      case "played":  return byDay.filter(m=>started(m.utcDate));
+      case "correct": return byDay.filter(m=>{const p=calcPts(preds[`${user.id}_${m.id}`],m);return p!==null&&p>0;});
+      case "exact":   return byDay.filter(m=>calcPts(preds[`${user.id}_${m.id}`],m)===5);
+      default:        return byDay;
+    }
+  },[byDay,filter,preds,user.id]);
+  const filters=[["all","Todos"],["pending","Pendientes"],["played","Jugados"],["correct","✅ Acertados"],["exact","⭐ Exactos"]];
   return(
     <div>
       <div style={{background:"white",borderBottom:"2px solid #F3F4F6",padding:"0.6rem 1rem",overflowX:"auto",display:"flex",gap:6,position:"sticky",top:58,zIndex:8,scrollbarWidth:"none"}}>
@@ -588,9 +628,21 @@ function PredictionsTab({user,preds,matches,onSave}){
           {matchdays.map(d=><button key={d} onClick={()=>setDay(d)} style={{...btn,padding:"0.28rem 0.75rem",fontSize:"0.78rem",borderRadius:8,background:day===d?"#0A1628":"#E5E7EB",color:day===d?"white":"#374151"}}>Jornada {d}</button>)}
         </div>
       )}
+      {/* Filter pills */}
+      <div style={{background:"#F9FAFB",borderBottom:"1px solid #E5E7EB",padding:"0.45rem 1rem",display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
+        {filters.map(([id,label])=>(
+          <button key={id} onClick={()=>setFilter(id)} style={{...btn,padding:"0.28rem 0.75rem",fontSize:"0.75rem",borderRadius:999,whiteSpace:"nowrap",background:filter===id?"#0A1628":"#E5E7EB",color:filter===id?"white":"#374151"}}>
+            {label}
+          </button>
+        ))}
+      </div>
       <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
         <h3 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.4rem",color:"#0A1628",marginBottom:"0.75rem",letterSpacing:"0.06em"}}>{STAGE_FULL[phase]}{phase==="GROUP_STAGE"?` · Jornada ${day}`:""}</h3>
-        {shown.length===0?<div style={{textAlign:"center",color:"#9CA3AF",padding:"3rem 0"}}>Sin partidos en esta fase todavía</div>:shown.map(m=><MatchCard key={m.id} match={m} pred={preds[`${user.id}_${m.id}`]} onSave={onSave}/>)}
+        {shown.length===0
+          ?<div style={{textAlign:"center",color:"#9CA3AF",padding:"3rem 0",fontSize:"0.9rem"}}>
+            {filter==="pending"?"Sin partidos pendientes 🎉":filter==="correct"?"Sin acertados todavía 😅":filter==="exact"?"Sin marcadores exactos todavía ⭐":"Sin partidos en esta fase todavía"}
+          </div>
+          :shown.map(m=><MatchCard key={m.id} match={m} pred={preds[`${user.id}_${m.id}`]} onSave={onSave}/>)}
       </div>
     </div>
   );
@@ -614,7 +666,13 @@ function LeaderboardTab({user,users,preds,matches,league}){
         {ranked.map((u,i)=>{const isMe=u.id===user.id;return(
           <div key={u.id} style={{display:"grid",gridTemplateColumns:"40px 1fr 40px 40px 55px",padding:"0.8rem 1rem",gap:6,alignItems:"center",background:isMe?"#FEF3C7":i===0?"#FFFBEB":i%2?"#F9FAFB":"white",borderBottom:i<ranked.length-1?"1px solid #F3F4F6":"none"}}>
             <span style={{fontWeight:900,fontSize:i<3?"1.2rem":"0.88rem",textAlign:"center"}}>{medals[i]||`${i+1}`}</span>
-            <div><div style={{fontWeight:isMe?900:700,fontSize:"0.88rem"}}>{u.displayName||u.username}{isMe?" 👈":""}</div><div style={{fontSize:"0.68rem",color:"#9CA3AF"}}>{u.correct} correctos · {u.exact} exactos</div></div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+                {u.avatar&&<span style={{fontSize:"1.1rem"}}>{u.avatar}</span>}
+                <div>
+                  <div style={{fontWeight:isMe?900:700,fontSize:"0.88rem"}}>{u.displayName||u.username}{isMe?" 👈":""}</div>
+                  <div style={{fontSize:"0.68rem",color:"#9CA3AF"}}>{u.correct} correctos · {u.exact} exactos</div>
+                </div>
+              </div>
             <div style={{textAlign:"center",fontSize:"1.1rem"}}>{u.champPick?flag(u.champPick):"❓"}</div>
             <div style={{textAlign:"center",fontWeight:800,fontSize:"0.78rem",color:u.exact>0?"#B45309":"#6B7280"}}>{u.exact>0?`${u.exact}⭐`:"-"}</div>
             <div style={{textAlign:"right",fontFamily:"'Bebas Neue',cursive",fontSize:"1.65rem",color:isMe?"#B45309":"#0A1628"}}>{u.pts}</div>
@@ -622,11 +680,24 @@ function LeaderboardTab({user,users,preds,matches,league}){
         );})}
       </div>
       <div style={{marginTop:"0.75rem",background:"#EFF6FF",borderRadius:12,padding:"0.7rem 1rem",fontSize:"0.72rem",color:"#1E40AF",fontWeight:700,lineHeight:1.6}}>📊 Grupos: ganador=3pts · exacto=5pts | Eliminatorias: 90'=3-5pts · prórroga=2pts · penaltis=1pt | Campeón=15pts</div>
+      <button onClick={()=>{
+        const medals2=["🥇","🥈","🥉"];
+        let txt=`🏆 Nico Fantasy\n${league.emoji} ${league.name}\n${"─".repeat(24)}\n`;
+        ranked.forEach((u,i)=>{
+          txt+=`${medals2[i]||`${i+1}°`} ${u.displayName||u.username} — ${u.pts}pts`;
+          if(u.champPick)txt+=` · ${u.champPick}`;
+          txt+="\n";
+        });
+        txt+=`${"─".repeat(24)}\nMundial 2026 ⚽`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
+      }} style={{...btn,width:"100%",marginTop:"0.75rem",background:"linear-gradient(135deg,#25D366,#1EA952)",color:"white",fontSize:"0.9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        📤 Compartir clasificación por WhatsApp
+      </button>
     </div>
   );
 }
 
-function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted,league}){
+function ProfileTab({user,onUpdatePwd,onChampPick,onUpdateAvatar,tournamentStarted,league}){
   const [old,setOld]=useState("");const [nw,setNw]=useState("");const [msg,setMsg]=useState("");
   const changePwd=async()=>{
     if(!old||nw.length<6)return;
@@ -635,10 +706,21 @@ function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted,league}){
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
       <div style={{background:NAVY,borderRadius:18,padding:"1.75rem",marginBottom:"1rem",color:"white",textAlign:"center"}}>
-        <div style={{fontSize:"3.5rem",marginBottom:6}}>{user.isAdmin?"👑":"⚽"}</div>
+        <div style={{fontSize:"3.5rem",marginBottom:6}}>{user.avatar||( user.isAdmin?"👑":"⚽")}</div>
         <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",letterSpacing:"0.1em"}}>{user.displayName||user.username}</div>
         <div style={{fontSize:"0.75rem",opacity:0.55,marginTop:4}}>{league.emoji} {league.name}</div>
         {user.isAdmin&&<div style={{color:GOLD,fontSize:"0.8rem",fontWeight:800,letterSpacing:"0.12em",marginTop:4}}>ADMINISTRADOR</div>}
+      </div>
+      {/* Avatar picker */}
+      <div style={{background:"white",borderRadius:16,padding:"1.25rem",marginBottom:"1rem",border:"1px solid #E5E7EB"}}>
+        <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"0.75rem",color:"#0A1628"}}>🎭 Mi Avatar</h3>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          {AVATARS.map(av=>(
+            <button key={av} onClick={()=>onUpdateAvatar(av)} style={{width:42,height:42,fontSize:"1.5rem",borderRadius:10,border:`2px solid ${user.avatar===av?"#C41E3A":"#E5E7EB"}`,background:user.avatar===av?"#FEF2F2":"white",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {av}
+            </button>
+          ))}
+        </div>
       </div>
       <div style={{background:"white",borderRadius:16,padding:"1.25rem",marginBottom:"1rem",border:"1px solid #E5E7EB"}}>
         <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"0.75rem",color:"#0A1628"}}>🏆 Mi Campeón del Mundial</h3>
@@ -657,7 +739,7 @@ function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted,league}){
 
 function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDeleteLeague,league}){
   const [un,setUn]=useState("");const [dn,setDn]=useState("");const [pw,setPw]=useState("");const [msg,setMsg]=useState("");
-  const [resetU,setResetU]=useState(null);const [resetPw,setResetPw]=useState("");
+  const [resetU,setResetU]=useState(null);const [resetPw,setResetPw]=useState("");const [revealPwd,setRevealPwd]=useState(null);
   const [adminSection,setAdminSection]=useState("results");
   // Local score state: {matchId: {home, away}}
   const [scores,setScores]=useState({});
@@ -761,8 +843,18 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
           <div key={u.id} style={{display:"flex",alignItems:"center",gap:"0.75rem",padding:"0.75rem 1rem",borderBottom:i<users.length-1?"1px solid #F3F4F6":"none"}}>
             <span style={{fontSize:"1.25rem"}}>{u.isAdmin?"👑":"⚽"}</span>
             <div style={{flex:1}}><div style={{fontWeight:700,fontSize:"0.88rem"}}>{u.displayName||u.username}</div><div style={{fontSize:"0.72rem",color:"#9CA3AF"}}>@{u.username} · {pts}pts · {u.champPick?`${flag(u.champPick)} ${u.champPick}`:"sin campeón"}</div></div>
-            {!u.isAdmin&&<button onClick={()=>{setResetU(u);setResetPw("");}} style={{background:"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.65rem",fontSize:"0.8rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>🔑</button>}
+            {!u.isAdmin&&(
+              <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                <button onClick={()=>setRevealPwd(revealPwd===u.id?null:u.id)} style={{background:"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.55rem",fontSize:"0.85rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}} title="Ver contraseña">👁️</button>
+                <button onClick={()=>{setResetU(u);setResetPw("");}} style={{background:"#F3F4F6",border:"none",borderRadius:8,padding:"0.35rem 0.55rem",fontSize:"0.85rem",fontWeight:700,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}} title="Resetear contraseña">🔑</button>
+              </div>
+            )}
           </div>
+          {revealPwd===u.id&&(
+            <div style={{padding:"0.5rem 1rem 0.6rem 3.5rem",background:"#FFFBEB",borderTop:"1px solid #FEF3C7",fontSize:"0.8rem",color:"#92400E",fontWeight:700}}>
+              🔑 Contraseña: <span style={{fontFamily:"monospace",letterSpacing:"0.08em"}}>{u.pwdHint||"(contraseña cambiada por el usuario)"}</span>
+            </div>
+          )}
         );})}
       </div>
       {resetU&&(
@@ -961,13 +1053,21 @@ function App(){
   async function createUser(username,displayName,password,cb){
     const all=[...users];
     if(all.find(u=>u.username.toLowerCase()===username.toLowerCase()))return cb(false);
-    all.push({id:randId(),username,displayName,pwd:hashPwd(password),isAdmin:false,champPick:null,createdAt:Date.now()});
+    all.push({id:randId(),username,displayName,pwd:hashPwd(password),pwdHint:password,isAdmin:false,champPick:null,createdAt:Date.now()});
     setUsers(all);await db.set(lk("users"),all);cb(true);
   }
 
   async function resetPwd(uid,pwd){
     const all=[...users];const idx=all.findIndex(u=>u.id===uid);if(idx===-1)return;
-    all[idx].pwd=hashPwd(pwd);setUsers(all);await db.set(lk("users"),all);
+    all[idx].pwd=hashPwd(pwd);all[idx].pwdHint=pwd;
+    setUsers(all);await db.set(lk("users"),all);
+  }
+
+  async function updateAvatar(avatar){
+    const all=[...users];const idx=all.findIndex(u=>u.id===user.id);if(idx===-1)return;
+    all[idx].avatar=avatar;
+    setUsers(all);setUser(u=>({...u,avatar}));
+    await db.set(lk("users"),all);
   }
 
   async function deleteLeague(leagueId){
@@ -1014,7 +1114,7 @@ function App(){
   const TABS=[{id:"home",icon:"🏠",label:"Inicio"},{id:"predictions",icon:"⚽",label:"Pronósticos"},{id:"leaderboard",icon:"🏆",label:"Tabla"},{id:"profile",icon:"👤",label:"Perfil"},...(user?.isAdmin?[{id:"admin",icon:"👑",label:"Admin"}]:[])];
 
   return(
-    <div style={{minHeight:"100vh",background:"#F3F4F6",paddingBottom:72}}>
+    <div className="fade-in" style={{minHeight:"100vh",background:"#F3F4F6",paddingBottom:72}}>
       {showChamp&&<ChampionModal onPick={pickChamp}/>}
       <div style={{background:NAVY,color:"white",padding:"0.7rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10,boxShadow:"0 2px 16px rgba(0,0,0,0.35)"}}>
         <div>
@@ -1038,7 +1138,7 @@ function App(){
         {tab==="home"&&<HomeTab user={user} users={users} preds={preds} matches={matchesWithResults} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
         {tab==="predictions"&&<PredictionsTab user={user} preds={preds} matches={matchesWithResults} onSave={savePred}/>}
         {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matchesWithResults} league={league}/>}
-        {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
+        {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onUpdateAvatar={updateAvatar} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
         {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matchesWithResults} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} onDeleteLeague={deleteLeague} league={league}/>}
       </div>
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
