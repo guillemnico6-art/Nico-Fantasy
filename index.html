@@ -655,7 +655,7 @@ function ProfileTab({user,onUpdatePwd,onChampPick,tournamentStarted,league}){
   );
 }
 
-function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,league}){
+function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDeleteLeague,league}){
   const [un,setUn]=useState("");const [dn,setDn]=useState("");const [pw,setPw]=useState("");const [msg,setMsg]=useState("");
   const [resetU,setResetU]=useState(null);const [resetPw,setResetPw]=useState("");
   const [adminSection,setAdminSection]=useState("results");
@@ -694,7 +694,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,leag
 
       {/* Section tabs */}
       <div style={{display:"flex",gap:8,marginBottom:"1rem"}}>
-        {[["results","⚽ Resultados"],["users","👥 Usuarios"]].map(([id,label])=>(
+        {[["results","⚽ Resultados"],["users","👥 Usuarios"],["liga","🗑️ Liga"]].map(([id,label])=>(
           <button key={id} onClick={()=>setAdminSection(id)} style={{...btn,flex:1,padding:"0.55rem",fontSize:"0.85rem",background:adminSection===id?RED:"#F3F4F6",color:adminSection===id?"white":"#374151",borderRadius:10}}>{label}</button>
         ))}
       </div>
@@ -778,6 +778,26 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,leag
         </div>
       )}
       </>)}
+
+      {/* LIGA SECTION - delete league */}
+      {adminSection==="liga"&&(
+        <div style={{background:"white",borderRadius:16,padding:"1.25rem",border:"1px solid #E5E7EB"}}>
+          <h3 style={{fontWeight:900,fontSize:"1rem",marginBottom:"0.5rem",color:"#0A1628"}}>🗑️ Eliminar Liga</h3>
+          <p style={{fontSize:"0.85rem",color:"#6B7280",marginBottom:"1.25rem",lineHeight:1.5}}>
+            Esta acción eliminará la liga <strong>"{league.name}"</strong> y todos sus usuarios y pronósticos de forma permanente. No se puede deshacer.
+          </p>
+          <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"0.75rem 1rem",marginBottom:"1.25rem",fontSize:"0.82rem",color:"#DC2626",fontWeight:700}}>
+            ⚠️ Los datos de Firebase (usuarios y pronósticos) también se eliminarán.
+          </div>
+          <button onClick={()=>{
+            if(window.confirm(`¿Seguro que quieres eliminar la liga "${league.name}"? Esta acción no se puede deshacer.`)){
+              onDeleteLeague(league.id);
+            }
+          }} style={{...btn,width:"100%",background:"linear-gradient(135deg,#DC2626,#B91C1C)",color:"white",fontSize:"0.95rem"}}>
+            🗑️ Eliminar liga permanentemente
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -950,6 +970,20 @@ function App(){
     all[idx].pwd=hashPwd(pwd);setUsers(all);await db.set(lk("users"),all);
   }
 
+  async function deleteLeague(leagueId){
+    // Remove from leagues list
+    const updated=leagues.filter(l=>l.id!==leagueId);
+    await db.set("nf_leagues",updated);
+    setLeagues(updated);
+    // Delete league data from Firebase
+    try{ await rtdb.ref(`nf_${leagueId}_users`).remove(); }catch{}
+    try{ await rtdb.ref(`nf_${leagueId}_preds`).remove(); }catch{}
+    // Go back to welcome screen
+    setScreen("welcome");
+    setUser(null);
+    setLeague(null);
+  }
+
   async function saveResult(matchId,home,away){
     const winner=home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW";
     // 1. Save to nf_results (dedicated results store - never overwritten)
@@ -1005,7 +1039,7 @@ function App(){
         {tab==="predictions"&&<PredictionsTab user={user} preds={preds} matches={matchesWithResults} onSave={savePred}/>}
         {tab==="leaderboard"&&<LeaderboardTab user={user} users={users} preds={preds} matches={matchesWithResults} league={league}/>}
         {tab==="profile"&&<ProfileTab user={user} onUpdatePwd={updatePwd} onChampPick={()=>setShowChamp(true)} tournamentStarted={tournamentStarted} league={league}/>}
-        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matchesWithResults} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} league={league}/>}
+        {tab==="admin"&&user?.isAdmin&&<AdminTab users={users} preds={preds} matches={matchesWithResults} onCreateUser={createUser} onResetPwd={resetPwd} onSaveResult={saveResult} onDeleteLeague={deleteLeague} league={league}/>}
       </div>
       <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:20,boxShadow:"0 -4px 12px rgba(0,0,0,0.08)"}}>
         {TABS.map(t=>(
