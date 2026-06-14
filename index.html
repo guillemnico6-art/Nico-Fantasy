@@ -394,36 +394,136 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}
   const myPts=userTotal(user.id,users,preds,matches);
   const sorted=useMemo(()=>[...users].sort((a,b)=>userTotal(b.id,users,preds,matches)-userTotal(a.id,users,preds,matches)),[users,preds,matches]);
   const rank=sorted.findIndex(u=>u.id===user.id)+1;
-  const next5=useMemo(()=>matches.filter(m=>!started(m.utcDate)).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)).slice(0,5),[matches]);
-  const myPredCount=Object.keys(preds).filter(k=>k.startsWith(user.id+"_")).length;
-  const top5=sorted.slice(0,5);const medals=["🥇","🥈","🥉","4️⃣","5️⃣"];
+  const top3=sorted.slice(0,3);
+  const leader=sorted[0]?userTotal(sorted[0].id,users,preds,matches):0;
+  const nextMatch=useMemo(()=>matches.filter(m=>!started(m.utcDate)).sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate))[0],[matches]);
+  const maxPts=leader||1;
+
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
-      <div style={{background:NAVY,borderRadius:18,padding:"1.25rem",marginBottom:"1rem",color:"white",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",right:-24,top:-24,fontSize:"9rem",opacity:0.05,lineHeight:1}}>⚽</div>
-        <div style={{fontSize:"0.68rem",opacity:0.55,fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:4}}>{league.emoji} {league.name}</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Mis puntos</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"3.5rem",color:GOLD,lineHeight:1}}>{myPts}</div><div style={{fontSize:"0.78rem",opacity:0.7}}>Posición <strong>#{rank}</strong> de {users.length}</div></div>
-          <div style={{textAlign:"right"}}><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pronósticos</div><div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2.2rem",color:"white",lineHeight:1}}>{myPredCount}</div><div style={{fontSize:"0.7rem",opacity:0.6}}>de {matches.length}</div></div>
+
+      {/* ── HERO CARD ── */}
+      <div style={{background:NAVY,borderRadius:18,padding:"1.25rem",marginBottom:"1rem",color:"white",overflow:"hidden"}}>
+
+        {/* Liga label */}
+        <div style={{fontSize:"0.68rem",letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(255,255,255,0.45)",marginBottom:"0.75rem",fontWeight:700}}>
+          {league.emoji} {league.name}
         </div>
-        <div style={{marginTop:"1rem",paddingTop:"1rem",borderTop:"1px solid rgba(255,255,255,0.12)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:"0.7rem",opacity:0.65,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase"}}>Mi campeón</div><div style={{fontWeight:800,fontSize:"0.95rem",marginTop:2}}>{user.champPick?`${flag(user.champPick)} ${user.champPick}`:"❓ Sin elegir"}</div></div>
-          {!user.champPick&&!tournamentStarted&&<button onClick={onChampPick} style={{background:GOLD,color:"#1F2937",fontWeight:900,border:"none",borderRadius:8,padding:"0.4rem 0.85rem",fontSize:"0.8rem",cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>🏆 Elegir</button>}
-          {user.champPick&&<span style={{fontSize:"0.7rem",opacity:0.6,fontWeight:700}}>{tournamentStarted?"🔒 Bloqueado":"✏️ Puedes cambiar"}</span>}
-        </div>
-      </div>
-      {next5.length>0&&<><h3 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.3rem",color:"#0A1628",marginBottom:"0.6rem",letterSpacing:"0.06em"}}>PRÓXIMOS PARTIDOS</h3>{next5.map(m=><MatchCard key={m.id} match={m} pred={preds[`${user.id}_${m.id}`]} onSave={()=>{}}/>)}</>}
-      <h3 style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.3rem",color:"#0A1628",margin:"1rem 0 0.6rem",letterSpacing:"0.06em"}}>TOP 5</h3>
-      <div style={{background:"white",borderRadius:16,border:"1px solid #E5E7EB",overflow:"hidden"}}>
-        {top5.map((u,i)=>{const pts=userTotal(u.id,users,preds,matches);const isMe=u.id===user.id;return(
-          <div key={u.id} style={{display:"grid",gridTemplateColumns:"36px 1fr auto auto",gap:"0.5rem",alignItems:"center",padding:"0.75rem 1rem",background:isMe?"#FEF3C7":i===0?"#FFFBEB":"transparent",borderBottom:i<4?"1px solid #F3F4F6":"none"}}>
-            <span style={{fontSize:i<3?"1.2rem":"0.88rem",fontWeight:900,textAlign:"center"}}>{medals[i]}</span>
-            <div style={{fontWeight:isMe?900:700,fontSize:"0.88rem"}}>{u.displayName||u.username}{isMe?" ":""}}</div>
-            <span style={{fontSize:"1.1rem"}}>{u.champPick?flag(u.champPick):"❓"}</span>
-            <span style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.5rem",color:isMe?"#B45309":"#0A1628"}}>{pts}</span>
+
+        {/* POSICIÓN + MINI PODIO */}
+        <div style={{display:"flex",alignItems:"flex-start",gap:"1rem",marginBottom:"1rem"}}>
+
+          {/* Posición grande + mis puntos */}
+          <div style={{minWidth:88}}>
+            <div style={{fontSize:"0.68rem",color:"rgba(255,255,255,0.5)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:2}}>Tu posición</div>
+            <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"3.8rem",color:GOLD,lineHeight:1}}>#{rank}</div>
+            <div style={{fontSize:"0.72rem",color:"rgba(255,255,255,0.45)",marginBottom:8}}>de {users.length}</div>
+            <div style={{background:"rgba(255,215,0,0.12)",border:"1px solid rgba(255,215,0,0.25)",borderRadius:8,padding:"5px 8px",textAlign:"center"}}>
+              <div style={{fontSize:"0.6rem",color:"rgba(255,215,0,0.7)",textTransform:"uppercase",letterSpacing:"0.08em"}}>Mis pts</div>
+              <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.5rem",color:GOLD,lineHeight:1.1}}>{myPts}</div>
+              {rank>1&&<div style={{fontSize:"0.6rem",color:"rgba(255,255,255,0.4)",marginTop:2}}>−{leader-myPts} del 1°</div>}
+              {rank===1&&<div style={{fontSize:"0.6rem",color:GOLD,marginTop:2}}>¡Líder!</div>}
+            </div>
           </div>
-        );})}
+
+          {/* Mini podio */}
+          <div style={{flex:1,display:"flex",flexDirection:"column",gap:7,paddingTop:2}}>
+            {top3.map((u,i)=>{
+              const pts=userTotal(u.id,users,preds,matches);
+              const isMe=u.id===user.id;
+              const medals=["🥇","🥈","🥉"];
+              const barW=Math.round((pts/maxPts)*100);
+              return(
+                <div key={u.id} style={{display:"flex",alignItems:"center",gap:7}}>
+                  <span style={{fontSize:14,minWidth:22}}>{medals[i]}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:"0.75rem",fontWeight:isMe?700:500,color:isMe?GOLD:"white",marginBottom:2}}>{u.displayName||u.username}{isMe?" (tú)":""}</div>
+                    <div style={{background:`rgba(255,255,255,${i===0?0.25:0.15})`,borderRadius:4,height:6,width:`${barW}%`}}/>
+                  </div>
+                  <span style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.65)",minWidth:32,textAlign:"right"}}>{pts}pts</span>
+                </div>
+              );
+            })}
+            {/* Si el usuario no está en top 3, mostrar su fila */}
+            {rank>3&&(()=>{
+              const barW=Math.round((myPts/maxPts)*100);
+              return(
+                <div style={{display:"flex",alignItems:"center",gap:7,paddingTop:3,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+                  <span style={{fontSize:"0.75rem",fontWeight:700,color:GOLD,minWidth:22}}>{rank}°</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:"0.75rem",fontWeight:700,color:GOLD,marginBottom:2}}>{user.displayName||user.username} (tú)</div>
+                    <div style={{background:"rgba(255,215,0,0.3)",borderRadius:4,height:6,width:`${barW||4}%`,border:"1px solid rgba(255,215,0,0.5)"}}/>
+                  </div>
+                  <span style={{fontSize:"0.7rem",color:GOLD,fontWeight:700,minWidth:32,textAlign:"right"}}>{myPts}pts</span>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.1)",marginBottom:"1rem"}}/>
+
+        {/* PRÓXIMO PARTIDO + CAMPEÓN */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
+
+          {/* Próximo partido */}
+          <div>
+            <div style={{fontSize:"0.68rem",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Próximo partido</div>
+            {nextMatch?(
+              <>
+                <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.4)",marginBottom:8}}>{fDate(nextMatch.utcDate)} · {fTime(nextMatch.utcDate)}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontSize:"2rem",lineHeight:1}}>{flag(nextMatch.homeTeam?.name)}</div>
+                    <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.8)",marginTop:4,fontWeight:500,lineHeight:1.2}}>{nextMatch.homeTeam?.name}</div>
+                  </div>
+                  <div style={{fontSize:"0.75rem",color:"rgba(255,255,255,0.3)",paddingBottom:14}}>vs</div>
+                  <div style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontSize:"2rem",lineHeight:1}}>{flag(nextMatch.awayTeam?.name)}</div>
+                    <div style={{fontSize:"0.7rem",color:"rgba(255,255,255,0.8)",marginTop:4,fontWeight:500,lineHeight:1.2}}>{nextMatch.awayTeam?.name}</div>
+                  </div>
+                </div>
+              </>
+            ):(
+              <div style={{fontSize:"0.8rem",color:"rgba(255,255,255,0.4)",marginTop:8}}>No hay más partidos</div>
+            )}
+          </div>
+
+          {/* Campeón */}
+          <div>
+            <div style={{fontSize:"0.68rem",color:"rgba(255,255,255,0.45)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Mi campeón</div>
+            {user.champPick?(
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <span style={{fontSize:"2rem",lineHeight:1}}>{flag(user.champPick)}</span>
+                  <div>
+                    <div style={{fontSize:"0.8rem",fontWeight:600,color:"white"}}>{user.champPick}</div>
+                    <div style={{fontSize:"0.68rem",color:"rgba(255,255,255,0.4)"}}>+15 pts si gana</div>
+                  </div>
+                </div>
+                {!tournamentStarted&&(
+                  <button onClick={onChampPick} style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:6,color:"rgba(255,255,255,0.65)",fontSize:"0.7rem",padding:"4px 10px",cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>
+                    ✏️ Cambiar
+                  </button>
+                )}
+                {tournamentStarted&&<div style={{fontSize:"0.68rem",color:"rgba(255,255,255,0.35)"}}>🔒 Bloqueado</div>}
+              </>
+            ):(
+              <>
+                <div style={{fontSize:"0.75rem",color:"rgba(255,255,255,0.45)",marginBottom:8,lineHeight:1.4}}>Sin elegir — vale 15 pts</div>
+                {!tournamentStarted&&(
+                  <button onClick={onChampPick} style={{background:GOLD,color:"#1F2937",border:"none",borderRadius:8,padding:"6px 12px",fontWeight:800,fontSize:"0.75rem",cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>
+                    🏆 Elegir
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+        </div>
       </div>
+
       <PointsGuide/>
     </div>
   );
