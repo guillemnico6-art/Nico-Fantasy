@@ -73,7 +73,20 @@ const randId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 const FLAGS={"Argentina":"🇦🇷","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Jordan":"🇯🇴","Iraq":"🇮🇶","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪","Uzbekistan":"🇺🇿","Bosnia and Herzegovina":"🇧🇦","Haiti":"🇭🇹","Cape Verde":"🇨🇻","Curaçao":"🇨🇼","Curacao":"🇨🇼"};
 const flag=n=>FLAGS[n]||"⚽";
-const AVATARS=["⚽","🥅","🏟️","🎽","🧤","👟","🏆","🥇","🏅","🎖️","⭐","🌟","💪","🔥","⚡","🎯","🚀","💎","🧠","🥊","🏋️","⛹️","🤺","🎪","🦁","🦅","🦈","🐯","🦊","🐺","🐉","🦋","🦓","🐆","🎊","🤴","🦸","🕵️","🧙","🌍"];
+const AVATARS=[
+  // ⚽ Deportes
+  "⚽","🥅","🏟️","🎽","🧤","👟","🏆","🥇","🏅","🎖️","🥊","🏋️","⛹️","🤺","🧗","🤸","🥋","🏊","🏄","🤽",
+  // 🦁 Animales
+  "🦁","🐯","🦊","🐺","🦅","🦈","🐉","🦋","🦓","🐆","🦒","🐘","🦏","🐊","🐻","🐼","🐸","🐬","🦉","🦚","🦜","🦢","🦩","🦬","🐲",
+  // 🤖 Personajes / Fantasía
+  "🤖","👾","👻","🤡","🧙","🦸","🦹","🕵️","🤴","👸","💂","🥷","🧚","🧜","🧝","🧞","🧟","👽","🧌","🫅",
+  // 🚀 Tecnología / Futurista
+  "🚀","🛸","💻","🎮","🕹️","🔬","🔭","⚗️","🧬","💾","🖥️","📡","💡","🔋","🛰️",
+  // 🔥 Naturaleza / Elementos
+  "🔥","🌊","🌋","⛰️","🌙","☀️","🌈","💎","🌟","⭐","🌪️","💫","🌠","❄️","🌌",
+  // ⚔️ Símbolos / Otros
+  "♟️","⚔️","🛡️","🎯","🃏","🎲","💥","⚡","🔱","🎊"
+];
 
 const CC={"Argentina":"ar","Brazil":"br","France":"fr","England":"gb-eng","Spain":"es","Germany":"de","Portugal":"pt","Netherlands":"nl","Belgium":"be","Italy":"it","Uruguay":"uy","Croatia":"hr","Mexico":"mx","United States":"us","Canada":"ca","Japan":"jp","South Korea":"kr","Korea Republic":"kr","Morocco":"ma","Senegal":"sn","Australia":"au","Ecuador":"ec","Denmark":"dk","Switzerland":"ch","Poland":"pl","Colombia":"co","Venezuela":"ve","Chile":"cl","Peru":"pe","Paraguay":"py","Qatar":"qa","Saudi Arabia":"sa","Iran":"ir","South Africa":"za","Nigeria":"ng","Ghana":"gh","Cameroon":"cm","Algeria":"dz","Tunisia":"tn","Egypt":"eg","DR Congo":"cd","Côte d'Ivoire":"ci","Serbia":"rs","Czechia":"cz","Czech Republic":"cz","Austria":"at","Turkey":"tr","Ukraine":"ua","Slovakia":"sk","Hungary":"hu","Romania":"ro","Sweden":"se","Norway":"no","Greece":"gr","New Zealand":"nz","Jamaica":"jm","Costa Rica":"cr","Panama":"pa","Honduras":"hn","El Salvador":"sv","Indonesia":"id","Jordan":"jo","Iraq":"iq","Scotland":"gb-sct","Wales":"gb-wls","Slovenia":"si","United Arab Emirates":"ae","Uzbekistan":"uz","Bosnia and Herzegovina":"ba","Haiti":"ht","Cape Verde":"cv","Curaçao":"cw","Curacao":"cw"};
 function FlagImg({name,size=48,style={}}){
@@ -440,7 +453,7 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}
       <div style={{background:NAVY,borderRadius:18,padding:"1.25rem",marginBottom:"1rem",color:"white",overflow:"hidden"}}>
 
         {/* Liga label */}
-        <div style={{fontSize:"0.68rem",letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(255,255,255,0.45)",marginBottom:"0.75rem",fontWeight:700}}>
+        <div style={{fontSize:"0.88rem",fontWeight:800,color:"rgba(255,255,255,0.9)",marginBottom:"0.85rem",textAlign:"center",letterSpacing:"0.04em"}}>
           {league.emoji} {league.name}
         </div>
 
@@ -472,7 +485,7 @@ function HomeTab({user,users,preds,matches,onChampPick,tournamentStarted,league}
                   <span style={{fontSize:14,minWidth:22}}>{medals[i]}</span>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:2}}>
-                      {u.avatar&&<span style={{fontSize:"0.9rem"}}>{u.avatar}</span>}
+                      <span style={{fontSize:"0.9rem"}}>{u.avatar||"🤖"}</span>
                       <span style={{fontSize:"0.75rem",fontWeight:isMe?700:500,color:isMe?GOLD:"white"}}>{u.displayName||u.username}{isMe?" (tú)":""}</span>
                     </div>
                     <div style={{background:`rgba(255,255,255,${i===0?0.25:0.15})`,borderRadius:4,height:6,width:`${barW}%`}}/>
@@ -667,7 +680,7 @@ function LeaderboardTab({user,users,preds,matches,league}){
           <div key={u.id} style={{display:"grid",gridTemplateColumns:"40px 1fr 40px 40px 55px",padding:"0.8rem 1rem",gap:6,alignItems:"center",background:isMe?"#FEF3C7":i===0?"#FFFBEB":i%2?"#F9FAFB":"white",borderBottom:i<ranked.length-1?"1px solid #F3F4F6":"none"}}>
             <span style={{fontWeight:900,fontSize:i<3?"1.2rem":"0.88rem",textAlign:"center"}}>{medals[i]||`${i+1}`}</span>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-                {u.avatar&&<span style={{fontSize:"1.1rem"}}>{u.avatar}</span>}
+                <span style={{fontSize:"1.1rem"}}>{u.avatar||"🤖"}</span>
                 <div>
                   <div style={{fontWeight:isMe?900:700,fontSize:"0.88rem"}}>{u.displayName||u.username}{isMe?" 👈":""}</div>
                   <div style={{fontSize:"0.68rem",color:"#9CA3AF"}}>{u.correct} correctos · {u.exact} exactos</div>
@@ -706,7 +719,7 @@ function ProfileTab({user,onUpdatePwd,onChampPick,onUpdateAvatar,tournamentStart
   return(
     <div style={{padding:"1rem",maxWidth:600,margin:"0 auto"}}>
       <div style={{background:NAVY,borderRadius:18,padding:"1.75rem",marginBottom:"1rem",color:"white",textAlign:"center"}}>
-        <div style={{fontSize:"3.5rem",marginBottom:6}}>{user.avatar||( user.isAdmin?"👑":"⚽")}</div>
+        <div style={{fontSize:"3.5rem",marginBottom:6}}>{user.avatar||(user.isAdmin?"👑":"🤖")}</div>
         <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"2rem",letterSpacing:"0.1em"}}>{user.displayName||user.username}</div>
         <div style={{fontSize:"0.75rem",opacity:0.55,marginTop:4}}>{league.emoji} {league.name}</div>
         {user.isAdmin&&<div style={{color:GOLD,fontSize:"0.8rem",fontWeight:800,letterSpacing:"0.12em",marginTop:4}}>ADMINISTRADOR</div>}
