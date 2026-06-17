@@ -73,20 +73,7 @@ const randId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 const FLAGS={"Argentina":"🇦🇷","Brazil":"🇧🇷","France":"🇫🇷","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","Germany":"🇩🇪","Portugal":"🇵🇹","Netherlands":"🇳🇱","Belgium":"🇧🇪","Italy":"🇮🇹","Uruguay":"🇺🇾","Croatia":"🇭🇷","Mexico":"🇲🇽","United States":"🇺🇸","Canada":"🇨🇦","Japan":"🇯🇵","South Korea":"🇰🇷","Morocco":"🇲🇦","Senegal":"🇸🇳","Australia":"🇦🇺","Ecuador":"🇪🇨","Denmark":"🇩🇰","Switzerland":"🇨🇭","Poland":"🇵🇱","Colombia":"🇨🇴","Venezuela":"🇻🇪","Chile":"🇨🇱","Peru":"🇵🇪","Paraguay":"🇵🇾","Qatar":"🇶🇦","Saudi Arabia":"🇸🇦","Iran":"🇮🇷","South Africa":"🇿🇦","Nigeria":"🇳🇬","Ghana":"🇬🇭","Cameroon":"🇨🇲","Algeria":"🇩🇿","Tunisia":"🇹🇳","Egypt":"🇪🇬","DR Congo":"🇨🇩","Côte d'Ivoire":"🇨🇮","Serbia":"🇷🇸","Czechia":"🇨🇿","Austria":"🇦🇹","Turkey":"🇹🇷","Ukraine":"🇺🇦","Slovakia":"🇸🇰","Hungary":"🇭🇺","Romania":"🇷🇴","Sweden":"🇸🇪","Norway":"🇳🇴","Greece":"🇬🇷","New Zealand":"🇳🇿","Jamaica":"🇯🇲","Costa Rica":"🇨🇷","Panama":"🇵🇦","Honduras":"🇭🇳","El Salvador":"🇸🇻","Indonesia":"🇮🇩","Jordan":"🇯🇴","Iraq":"🇮🇶","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Slovenia":"🇸🇮","United Arab Emirates":"🇦🇪","Uzbekistan":"🇺🇿","Bosnia and Herzegovina":"🇧🇦","Haiti":"🇭🇹","Cape Verde":"🇨🇻","Curaçao":"🇨🇼","Curacao":"🇨🇼"};
 const flag=n=>FLAGS[n]||"⚽";
-const AVATARS=[
-  // ⚽ Deportes
-  "⚽","🥅","🏟️","🎽","🧤","👟","🏆","🥇","🏅","🎖️","🥊","🏋️","⛹️","🤺","🧗","🤸","🥋","🏊","🏄","🤽",
-  // 🦁 Animales
-  "🦁","🐯","🦊","🐺","🦅","🦈","🐉","🦋","🦓","🐆","🦒","🐘","🦏","🐊","🐻","🐼","🐸","🐬","🦉","🦚","🦜","🦢","🦩","🦬","🐲",
-  // 🤖 Personajes / Fantasía
-  "🤖","👾","👻","🤡","🧙","🦸","🦹","🕵️","🤴","👸","💂","🥷","🧚","🧜","🧝","🧞","🧟","👽","🧌","🫅",
-  // 🚀 Tecnología / Futurista
-  "🚀","🛸","💻","🎮","🕹️","🔬","🔭","⚗️","🧬","💾","🖥️","📡","💡","🔋","🛰️",
-  // 🔥 Naturaleza / Elementos
-  "🔥","🌊","🌋","⛰️","🌙","☀️","🌈","💎","🌟","⭐","🌪️","💫","🌠","❄️","🌌",
-  // ⚔️ Símbolos / Otros
-  "♟️","⚔️","🛡️","🎯","🃏","🎲","💥","⚡","🔱","🎊"
-];
+const AVATARS=["⚽","🥅","🏟️","🎽","🧤","👟","🏆","🥇","🏅","🎖️","🥊","🏋️","⛹️","🤺","🧗","🤸","🥋","🏊","🏄","🤽","🦁","🐯","🦊","🐺","🦅","🦈","🐉","🦋","🦓","🐆","🦒","🐘","🦏","🐊","🐻","🐼","🐸","🐬","🦉","🦚","🦜","🦢","🦩","🦬","🐲","🤖","👾","👻","🤡","🧙","🦸","🦹","🕵️","🤴","👸","💂","🥷","🧚","🧜","🧝","🧞","🧟","👽","🚀","🛸","💻","🎮","🕹️","🔬","🔭","⚗️","🧬","💾","🖥️","📡","💡","🔋","🛰️","🔥","🌊","🌋","⛰️","🌙","☀️","🌈","💎","🌟","⭐","🌪️","💫","🌠","❄️","🌌","♟️","⚔️","🛡️","🎯","🃏","🎲","💥","⚡","🔱","🎊"];
 
 const CC={"Argentina":"ar","Brazil":"br","France":"fr","England":"gb-eng","Spain":"es","Germany":"de","Portugal":"pt","Netherlands":"nl","Belgium":"be","Italy":"it","Uruguay":"uy","Croatia":"hr","Mexico":"mx","United States":"us","Canada":"ca","Japan":"jp","South Korea":"kr","Korea Republic":"kr","Morocco":"ma","Senegal":"sn","Australia":"au","Ecuador":"ec","Denmark":"dk","Switzerland":"ch","Poland":"pl","Colombia":"co","Venezuela":"ve","Chile":"cl","Peru":"pe","Paraguay":"py","Qatar":"qa","Saudi Arabia":"sa","Iran":"ir","South Africa":"za","Nigeria":"ng","Ghana":"gh","Cameroon":"cm","Algeria":"dz","Tunisia":"tn","Egypt":"eg","DR Congo":"cd","Côte d'Ivoire":"ci","Serbia":"rs","Czechia":"cz","Czech Republic":"cz","Austria":"at","Turkey":"tr","Ukraine":"ua","Slovakia":"sk","Hungary":"hu","Romania":"ro","Sweden":"se","Norway":"no","Greece":"gr","New Zealand":"nz","Jamaica":"jm","Costa Rica":"cr","Panama":"pa","Honduras":"hn","El Salvador":"sv","Indonesia":"id","Jordan":"jo","Iraq":"iq","Scotland":"gb-sct","Wales":"gb-wls","Slovenia":"si","United Arab Emirates":"ae","Uzbekistan":"uz","Bosnia and Herzegovina":"ba","Haiti":"ht","Cape Verde":"cv","Curaçao":"cw","Curacao":"cw"};
 function FlagImg({name,size=48,style={}}){
