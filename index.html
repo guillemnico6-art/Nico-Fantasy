@@ -680,18 +680,78 @@ function LeaderboardTab({user,users,preds,matches,league}){
         );})}
       </div>
       <div style={{marginTop:"0.75rem",background:"#EFF6FF",borderRadius:12,padding:"0.7rem 1rem",fontSize:"0.72rem",color:"#1E40AF",fontWeight:700,lineHeight:1.6}}>📊 Grupos: ganador=3pts · exacto=5pts | Eliminatorias: 90'=3-5pts · prórroga=2pts · penaltis=1pt | Campeón=15pts</div>
-      <button onClick={()=>{
-        const medals2=["🥇","🥈","🥉"];
-        let txt=`🏆 Nico Fantasy\n${league.emoji} ${league.name}\n${"─".repeat(24)}\n`;
+      <button onClick={async()=>{
+        const canvas=document.createElement("canvas");
+        const W=720,headerH=190,rowH=84,padBottom=50;
+        const H=headerH+ranked.length*rowH+padBottom;
+        canvas.width=W;canvas.height=H;
+        const ctx=canvas.getContext("2d");
+
+        // Background
+        const bgGrad=ctx.createLinearGradient(0,0,W,H);
+        bgGrad.addColorStop(0,"#0A1628");bgGrad.addColorStop(1,"#1a3a5c");
+        ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
+
+        // Header
+        ctx.textAlign="center";
+        ctx.font="900 30px Arial";ctx.fillStyle="#FFD700";
+        ctx.fillText("🏆 NICO FANTASY",W/2,55);
+        ctx.font="700 20px Arial";ctx.fillStyle="rgba(255,255,255,0.85)";
+        ctx.fillText(`${league.emoji} ${league.name}`,W/2,90);
+        ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(40,headerH-25);ctx.lineTo(W-40,headerH-25);ctx.stroke();
+
+        // Rows
+        const medals=["🥇","🥈","🥉"];
         ranked.forEach((u,i)=>{
-          txt+=`${medals2[i]||`${i+1}°`} ${u.displayName||u.username} — ${u.pts}pts`;
-          if(u.champPick)txt+=` · ${u.champPick}`;
-          txt+="\n";
+          const y=headerH+i*rowH;
+          const isFirst=i===0;
+          // Row background
+          ctx.fillStyle=isFirst?"rgba(255,215,0,0.12)":(i%2?"rgba(255,255,255,0.03)":"transparent");
+          ctx.fillRect(20,y,W-40,rowH-8);
+          // Rank/medal
+          ctx.textAlign="left";ctx.font="700 30px Arial";
+          ctx.fillStyle=isFirst?"#FFD700":"rgba(255,255,255,0.6)";
+          ctx.fillText(medals[i]||`${i+1}°`,40,y+50);
+          // Avatar
+          ctx.font="32px Arial";
+          ctx.fillText(u.avatar||"🤖",110,y+52);
+          // Name
+          ctx.font="700 24px Arial";ctx.fillStyle="white";
+          ctx.fillText(u.displayName||u.username,165,y+38);
+          // Sub info
+          ctx.font="400 15px Arial";ctx.fillStyle="rgba(255,255,255,0.5)";
+          ctx.fillText(`${u.correct} correctos · ${u.exact} exactos${u.champPick?" · 🏆 "+u.champPick:""}`,165,y+62);
+          // Points
+          ctx.textAlign="right";ctx.font="900 34px Arial";
+          ctx.fillStyle=isFirst?"#FFD700":"white";
+          ctx.fillText(`${u.pts}`,W-50,y+50);
+          ctx.font="700 14px Arial";ctx.fillStyle="rgba(255,255,255,0.4)";
+          ctx.fillText("PTS",W-50,y+68);
         });
-        txt+=`${"─".repeat(24)}\nMundial 2026 ⚽`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`,"_blank");
+
+        // Footer
+        ctx.textAlign="center";ctx.font="700 16px Arial";ctx.fillStyle="rgba(255,255,255,0.4)";
+        ctx.fillText("⚽ Mundial 2026 ⚽",W/2,H-20);
+
+        canvas.toBlob(async(blob)=>{
+          const file=new File([blob],"clasificacion.png",{type:"image/png"});
+          if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+            try{
+              await navigator.share({files:[file],title:"Clasificación Nico Fantasy",text:`${league.emoji} ${league.name}`});
+            }catch(e){}
+          }else{
+            // Fallback: download image
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement("a");
+            a.href=url;a.download="clasificacion-nico-fantasy.png";
+            document.body.appendChild(a);a.click();document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert("📸 Imagen descargada. Ábrela y compártela por WhatsApp.");
+          }
+        },"image/png");
       }} style={{...btn,width:"100%",marginTop:"0.75rem",background:"linear-gradient(135deg,#25D366,#1EA952)",color:"white",fontSize:"0.9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-        📤 Compartir clasificación por WhatsApp
+        📸 Compartir clasificación (imagen)
       </button>
     </div>
   );
