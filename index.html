@@ -825,6 +825,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
   const [adminSection,setAdminSection]=useState("results");
   // Local score state: {matchId: {home, away}}
   const [scores,setScores]=useState({});
+  const [durations,setDurations]=useState({}); // {matchId: "REGULAR"|"EXTRA_TIME"|"PENALTIES"}
   const [saving,setSaving]=useState({});
   const [saved,setSaved]=useState({});
 
@@ -837,8 +838,9 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
   const saveScore=async(matchId)=>{
     const s=scores[matchId];
     if(!s||s.home===""||s.away==="")return;
+    const dur=durations[matchId]||"REGULAR";
     setSaving(v=>({...v,[matchId]:true}));
-    await onSaveResult(matchId,+s.home,+s.away);
+    await onSaveResult(matchId,+s.home,+s.away,dur);
     setSaving(v=>({...v,[matchId]:false}));
     setSaved(v=>({...v,[matchId]:true}));
     setTimeout(()=>setSaved(v=>({...v,[matchId]:false})),3000);
@@ -878,7 +880,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
             return(
               <div key={m.id} style={{background:"white",borderRadius:14,padding:"0.9rem",marginBottom:"0.6rem",border:`2px solid ${hasResult?"#22C55E":"#E5E7EB"}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.5rem"}}>
-                  <span style={{fontSize:"0.72rem",color:"#9CA3AF",fontWeight:600}}>{fDate(m.utcDate)} · {m.group||""}</span>
+                  <span style={{fontSize:"0.72rem",color:"#9CA3AF",fontWeight:600}}>{fDate(m.utcDate)} · {m.group||STAGE_SHORT[m.stage]||""}</span>
                   {hasResult&&<span style={{fontSize:"0.68rem",fontWeight:800,background:"#DCFCE7",color:"#166534",padding:"0.15rem 0.5rem",borderRadius:999}}>✅ Guardado</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"0.5rem"}}>
@@ -900,6 +902,15 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
                     <div style={{fontSize:"0.75rem",fontWeight:800,color:"#1F2937",marginTop:2}}>{m.awayTeam?.shortName||m.awayTeam?.name}</div>
                   </div>
                 </div>
+                {m.stage!=="GROUP_STAGE"&&(
+                  <div style={{display:"flex",gap:6,marginTop:"0.6rem",justifyContent:"center"}}>
+                    {[["REGULAR","⏱️ 90 min"],["EXTRA_TIME","⏰ Prórroga"],["PENALTIES","🥅 Penaltis"]].map(([id,label])=>(
+                      <button key={id} onClick={()=>setDurations(v=>({...v,[m.id]:id}))} style={{...btn,padding:"0.3rem 0.6rem",fontSize:"0.7rem",borderRadius:8,background:(durations[m.id]||(hasResult?m.score?.duration:"REGULAR"))===id?"#0A1628":"#F3F4F6",color:(durations[m.id]||(hasResult?m.score?.duration:"REGULAR"))===id?"white":"#374151"}}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button onClick={()=>saveScore(m.id)} disabled={sc.home===""||sc.away===""} style={{...btn,width:"100%",marginTop:"0.6rem",padding:"0.5rem",fontSize:"0.85rem",background:isSaved?"linear-gradient(135deg,#16A34A,#15803D)":RED,color:"white",opacity:sc.home===""||sc.away===""?0.4:1,cursor:sc.home===""||sc.away===""?"not-allowed":"pointer"}}>
                   {isSaving?"...":isSaved?"✅ ¡Guardado! Puntos actualizados":"💾 Guardar resultado"}
                 </button>
@@ -1177,16 +1188,16 @@ function App(){
     setLeague(null);
   }
 
-  async function saveResult(matchId,home,away){
+  async function saveResult(matchId,home,away,duration="REGULAR"){
     const winner=home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW";
     // 1. Save to nf_results (dedicated results store - never overwritten)
-    const updatedRes={...results,[matchId]:{home,away,winner,duration:"REGULAR"}};
+    const updatedRes={...results,[matchId]:{home,away,winner,duration}};
     setResults(updatedRes);
     await db.set("nf_results",updatedRes);
     // 2. Also update nf_matches so merge logic works if app reloads
     const updatedMatches=matches.map(m=>{
       if(m.id!==matchId)return m;
-      return{...m,status:"FINISHED",score:{fullTime:{home,away},winner,duration:"REGULAR",regularTime:{home,away}}};
+      return{...m,status:"FINISHED",score:{fullTime:{home,away},winner,duration,regularTime:{home,away}}};
     });
     setMatches(updatedMatches);
     await db.set("nf_matches",updatedMatches);
