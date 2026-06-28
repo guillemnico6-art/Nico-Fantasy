@@ -60,6 +60,7 @@ const db={
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
 const APP_NAME="Nico Fantasy";
 const SUPER_PWD="Mundial2026!";
+const CHAMP_LOCK_DEADLINE="2026-06-28T19:00:00Z"; // 21:00 hora España (CEST)
 const CACHE_MS=5*60*1000;
 const API_KEY="009c3e6fcd7c40948730836ac3df3ee3";
 const WC_API="https://api.football-data.org/v4/competitions/WC";
@@ -353,7 +354,7 @@ function ChampionModal({onPick}){
         <div style={{background:NAVY,borderRadius:"20px 20px 0 0",padding:"1.5rem",textAlign:"center",color:"white"}}>
           <div style={{fontSize:"3rem",lineHeight:1,marginBottom:6,filter:"drop-shadow(0 0 20px rgba(255,215,0,0.6))"}}>🏆</div>
           <div style={{fontFamily:"'Bebas Neue',cursive",fontSize:"1.9rem",color:GOLD,letterSpacing:"0.08em"}}>¿Quién ganará el Mundial?</div>
-          <p style={{fontSize:"0.8rem",opacity:0.85,marginTop:6,fontWeight:600,lineHeight:1.5}}>Esta predicción vale <strong style={{color:GOLD}}>15 puntos</strong>.<br/>No podrás cambiarla una vez empiece el torneo.</p>
+          <p style={{fontSize:"0.8rem",opacity:0.85,marginTop:6,fontWeight:600,lineHeight:1.5}}>Esta predicción vale <strong style={{color:GOLD}}>15 puntos</strong>.<br/>Puedes cambiarla hasta las <strong style={{color:GOLD}}>21:00 de hoy</strong>.</p>
         </div>
         <div style={{padding:"0.75rem 1rem 0.5rem"}}>
           <input placeholder="🔍 Buscar selección..." value={q} onChange={e=>setQ(e.target.value)} style={{...inp,borderRadius:10,padding:"0.55rem 1rem"}}/>
@@ -361,7 +362,7 @@ function ChampionModal({onPick}){
         <div style={{overflowY:"auto",flex:1,padding:"0.25rem 1rem 0.5rem"}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
             {filtered.map(t=>(
-              <button key={t.id} onClick={()=>setSel(t.name)} style={{padding:"0.7rem",borderRadius:10,textAlign:"left",cursor:"pointer",border:`2px solid ${sel===t.name?"#C41E3A":"#E5E7EB"}`,background:sel===t.name?"#FEF2F2":"white",fontFamily:"'Nunito',sans-serif"}}>
+              <button type="button" key={t.id} onClick={()=>setSel(t.name)} style={{padding:"0.7rem",borderRadius:10,textAlign:"left",cursor:"pointer",border:`2px solid ${sel===t.name?"#C41E3A":"#E5E7EB"}`,background:sel===t.name?"#FEF2F2":"white",fontFamily:"'Nunito',sans-serif",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
                 <div style={{fontSize:"1.75rem",lineHeight:1}}>{flag(t.name)}</div>
                 <div style={{fontSize:"0.75rem",fontWeight:800,color:"#374151",marginTop:3}}>{t.shortName||t.name}</div>
               </button>
@@ -369,7 +370,7 @@ function ChampionModal({onPick}){
           </div>
         </div>
         <div style={{padding:"0.75rem 1rem",borderTop:"1px solid #F3F4F6"}}>
-          <button onClick={()=>sel&&onPick(sel)} disabled={!sel} style={{...btn,width:"100%",background:sel?RED:"#E5E7EB",color:sel?"white":"#9CA3AF",cursor:sel?"pointer":"not-allowed"}}>
+          <button type="button" onClick={()=>{if(!sel)return;document.activeElement&&document.activeElement.blur&&document.activeElement.blur();onPick(sel);}} style={{...btn,width:"100%",background:sel?RED:"#E5E7EB",color:sel?"white":"#9CA3AF",cursor:sel?"pointer":"default",pointerEvents:"auto",touchAction:"manipulation",WebkitTapHighlightColor:"transparent"}}>
             {sel?`✅ Confirmar: ${flag(sel)} ${sel}`:"Elige tu campeón primero"}
           </button>
         </div>
@@ -1117,13 +1118,15 @@ function App(){
     alert(`✅ Liga "${name}" creada. El admin es "${adminUser}".`);
   }
 
-  // Champion pick locks when knockout phase starts (after group stage ends ~June 28)
-  // If no knockout matches exist yet, use July 1 as the cutoff date
-  const tournamentStarted=useMemo(()=>{
-    const firstKO=matches.find(m=>m.stage==="ROUND_OF_32"||m.stage==="ROUND_OF_16");
-    if(firstKO) return started(firstKO.utcDate);
-    return started("2026-07-01T00:00:00Z"); // Fallback: July 1
-  },[matches]);
+  // Champion pick locks at a fixed deadline: today 21:00 (hora España)
+  const [tournamentStarted,setTournamentStarted]=useState(started(CHAMP_LOCK_DEADLINE));
+  useEffect(()=>{
+    if(tournamentStarted)return;
+    const msLeft=new Date(CHAMP_LOCK_DEADLINE)-new Date();
+    if(msLeft<=0){setTournamentStarted(true);return;}
+    const t=setTimeout(()=>setTournamentStarted(true),msLeft);
+    return()=>clearTimeout(t);
+  },[tournamentStarted]);
 
   async function login(username,password){
     setLoginBusy(true);setLoginErr("");
@@ -1137,10 +1140,12 @@ function App(){
     if(!found.champPick&&!tournamentStarted)setShowChamp(true);
   }
 
-  async function pickChamp(teamName){
+  function pickChamp(teamName){
+    // Optimistic: close modal and update UI instantly, save in background
+    setShowChamp(false);
     const all=[...users];const idx=all.findIndex(u=>u.id===user.id);if(idx===-1)return;
     all[idx].champPick=teamName;setUsers(all);setUser(u=>({...u,champPick:teamName}));
-    await db.set(lk("users"),all);setShowChamp(false);
+    db.set(lk("users"),all);
   }
 
   async function savePred(matchId,home,away){
