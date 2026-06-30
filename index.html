@@ -827,6 +827,7 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
   // Local score state: {matchId: {home, away}}
   const [scores,setScores]=useState({});
   const [durations,setDurations]=useState({}); // {matchId: "REGULAR"|"EXTRA_TIME"|"PENALTIES"}
+  const [penWinners,setPenWinners]=useState({}); // {matchId: "HOME"|"AWAY"} only for PENALTIES
   const [saving,setSaving]=useState({});
   const [saved,setSaved]=useState({});
 
@@ -836,12 +837,14 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
     .sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate)),
   [matches]);
 
-  const saveScore=async(matchId)=>{
+  const saveScore=async(matchId,homeTeamName)=>{
     const s=scores[matchId];
     if(!s||s.home===""||s.away==="")return;
     const dur=durations[matchId]||"REGULAR";
+    const pw=penWinners[matchId]; // "HOME" or "AWAY"
+    const penWinner=dur==="PENALTIES"?(pw==="HOME"?"HOME_TEAM":"AWAY_TEAM"):null;
     setSaving(v=>({...v,[matchId]:true}));
-    await onSaveResult(matchId,+s.home,+s.away,dur);
+    await onSaveResult(matchId,+s.home,+s.away,dur,penWinner);
     setSaving(v=>({...v,[matchId]:false}));
     setSaved(v=>({...v,[matchId]:true}));
     setTimeout(()=>setSaved(v=>({...v,[matchId]:false})),3000);
@@ -904,15 +907,30 @@ function AdminTab({users,preds,matches,onCreateUser,onResetPwd,onSaveResult,onDe
                   </div>
                 </div>
                 {m.stage!=="GROUP_STAGE"&&(
-                  <div style={{display:"flex",gap:6,marginTop:"0.6rem",justifyContent:"center"}}>
-                    {[["REGULAR","⏱️ 90 min"],["EXTRA_TIME","⏰ Prórroga"],["PENALTIES","🥅 Penaltis"]].map(([id,label])=>(
-                      <button key={id} onClick={()=>setDurations(v=>({...v,[m.id]:id}))} style={{...btn,padding:"0.3rem 0.6rem",fontSize:"0.7rem",borderRadius:8,background:(durations[m.id]||(hasResult?m.score?.duration:"REGULAR"))===id?"#0A1628":"#F3F4F6",color:(durations[m.id]||(hasResult?m.score?.duration:"REGULAR"))===id?"white":"#374151"}}>
-                        {label}
-                      </button>
-                    ))}
+                  <div style={{marginTop:"0.6rem"}}>
+                    <div style={{display:"flex",gap:6,justifyContent:"center",marginBottom:6}}>
+                      {[["REGULAR","⏱️ 90 min"],["EXTRA_TIME","⏰ Prórroga"],["PENALTIES","🥅 Penaltis"]].map(([id,label])=>(
+                        <button key={id} onClick={()=>setDurations(v=>({...v,[m.id]:id}))} style={{...btn,padding:"0.3rem 0.6rem",fontSize:"0.7rem",borderRadius:8,background:(durations[m.id]||(hasResult?m.score?.duration:"REGULAR"))===id?"#0A1628":"#F3F4F6",color:(durations[m.id]||(hasResult?m.score?.duration:"REGULAR"))===id?"white":"#374151"}}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {(durations[m.id]==="PENALTIES"||(hasResult&&m.score?.duration==="PENALTIES"&&!durations[m.id]))&&(
+                      <div style={{background:"#FEF3C7",borderRadius:10,padding:"0.6rem",textAlign:"center"}}>
+                        <div style={{fontSize:"0.72rem",fontWeight:700,color:"#92400E",marginBottom:6}}>¿Quién ganó los penaltis?</div>
+                        <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+                          <button onClick={()=>setPenWinners(v=>({...v,[m.id]:"HOME"}))} style={{...btn,padding:"0.4rem 0.9rem",fontSize:"0.78rem",borderRadius:8,background:penWinners[m.id]==="HOME"?"#C41E3A":"#F3F4F6",color:penWinners[m.id]==="HOME"?"white":"#374151",fontWeight:700}}>
+                            🏠 {m.homeTeam?.shortName||m.homeTeam?.name}
+                          </button>
+                          <button onClick={()=>setPenWinners(v=>({...v,[m.id]:"AWAY"}))} style={{...btn,padding:"0.4rem 0.9rem",fontSize:"0.78rem",borderRadius:8,background:penWinners[m.id]==="AWAY"?"#C41E3A":"#F3F4F6",color:penWinners[m.id]==="AWAY"?"white":"#374151",fontWeight:700}}>
+                            ✈️ {m.awayTeam?.shortName||m.awayTeam?.name}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-                <button onClick={()=>saveScore(m.id)} disabled={sc.home===""||sc.away===""} style={{...btn,width:"100%",marginTop:"0.6rem",padding:"0.5rem",fontSize:"0.85rem",background:isSaved?"linear-gradient(135deg,#16A34A,#15803D)":RED,color:"white",opacity:sc.home===""||sc.away===""?0.4:1,cursor:sc.home===""||sc.away===""?"not-allowed":"pointer"}}>
+                <button onClick={()=>saveScore(m.id,m.homeTeam?.name)} disabled={sc.home===""||sc.away===""} style={{...btn,width:"100%",marginTop:"0.6rem",padding:"0.5rem",fontSize:"0.85rem",background:isSaved?"linear-gradient(135deg,#16A34A,#15803D)":RED,color:"white",opacity:sc.home===""||sc.away===""?0.4:1,cursor:sc.home===""||sc.away===""?"not-allowed":"pointer"}}>
                   {isSaving?"...":isSaved?"✅ ¡Guardado! Puntos actualizados":"💾 Guardar resultado"}
                 </button>
               </div>
@@ -1193,8 +1211,9 @@ function App(){
     setLeague(null);
   }
 
-  async function saveResult(matchId,home,away,duration="REGULAR"){
-    const winner=home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW";
+  async function saveResult(matchId,home,away,duration="REGULAR",penaltyWinner=null){
+    // For PENALTIES: use penaltyWinner (HOME_TEAM or AWAY_TEAM) since 90min score is a draw
+    const winner=penaltyWinner||(home>away?"HOME_TEAM":home<away?"AWAY_TEAM":"DRAW");
     // 1. Save to nf_results (dedicated results store - never overwritten)
     const updatedRes={...results,[matchId]:{home,away,winner,duration}};
     setResults(updatedRes);
