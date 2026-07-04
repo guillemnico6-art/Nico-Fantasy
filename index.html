@@ -217,6 +217,20 @@ function getKnockoutMatches(){
   ];
 }
 
+function getRound16Matches(){
+  const R=(id,date,home,hS,away,aS)=>({id,stage:"ROUND_OF_16",utcDate:date,status:"TIMED",homeTeam:{name:home,shortName:hS},awayTeam:{name:away,shortName:aS},score:{fullTime:{home:null,away:null},winner:null,duration:null}});
+  return[
+    R(89,"2026-07-04T17:00:00Z","Canada","Canadá","Morocco","Marruecos"),
+    R(90,"2026-07-04T21:00:00Z","France","Francia","Paraguay","Paraguay"),
+    R(91,"2026-07-05T20:00:00Z","Brazil","Brasil","Norway","Noruega"),
+    R(92,"2026-07-06T00:00:00Z","Mexico","México","England","Inglaterra"),
+    R(93,"2026-07-06T19:00:00Z","Portugal","Portugal","Spain","España"),
+    R(94,"2026-07-07T00:00:00Z","United States","EE.UU.","Belgium","Bélgica"),
+    R(95,"2026-07-07T16:00:00Z","Argentina","Argentina","Egypt","Egipto"),
+    R(96,"2026-07-07T20:00:00Z","Switzerland","Suiza","Colombia","Colombia"),
+  ];
+}
+
 // ── DESIGN ────────────────────────────────────────────────────────────────
 const RED="linear-gradient(135deg,#C41E3A,#E8400C)";
 const NAVY="linear-gradient(135deg,#0A1628,#1a3a5c)";
@@ -1075,12 +1089,12 @@ function App(){
     setLeagues(lgs);
     const cache=await db.get("nf_matches")||await db.get("wc2026_matches");
     // If cache exists but is missing the knockout stage matches, merge them in (without losing saved results)
-    const hasKnockout=cache&&cache.some(m=>m.stage==="ROUND_OF_32");
+    const hasKnockout=cache&&cache.some(m=>m.stage==="ROUND_OF_16");
     if(cache&&cache.length>0&&hasKnockout){
       setMatches(cache);
     } else if(cache&&cache.length>0){
       // Merge in new knockout matches while preserving existing group-stage results
-      const knockout=getKnockoutMatches();
+      const knockout=[...getKnockoutMatches(),...getRound16Matches()];
       const merged=[...cache,...knockout.filter(k=>!cache.some(c=>c.id===k.id))];
       setMatches(merged);
       await db.set("nf_matches",merged);
@@ -1114,7 +1128,7 @@ function App(){
       }
     }catch{}
     // Use hardcoded schedule merged with any saved results
-    const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches()];
+    const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches(),...getRound16Matches()];
     const merged=merge(fullSchedule);
     setMatches(merged);await db.set("nf_matches",merged);await db.set("nf_match_t",Date.now());
   }
