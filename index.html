@@ -1087,21 +1087,8 @@ function App(){
       await db.set("nf_leagues",lgs);
     }
     setLeagues(lgs);
-    const cache=await db.get("nf_matches")||await db.get("wc2026_matches");
-    // If cache exists but is missing the knockout stage matches, merge them in (without losing saved results)
-    const hasKnockout=cache&&cache.some(m=>m.stage==="ROUND_OF_16");
-    if(cache&&cache.length>0&&hasKnockout){
-      setMatches(cache);
-    } else if(cache&&cache.length>0){
-      // Merge in new knockout matches while preserving existing group-stage results
-      const knockout=[...getKnockoutMatches(),...getRound16Matches()];
-      const merged=[...cache,...knockout.filter(k=>!cache.some(c=>c.id===k.id))];
-      setMatches(merged);
-      await db.set("nf_matches",merged);
-      await db.set("nf_match_t",Date.now());
-    } else {
-      await fetchMatches();
-    }
+    // Always rebuild from hardcoded schedule + saved results
+    await fetchMatches();
     // Load manually saved results (separate from match schedule)
     const savedRes=await db.get("nf_results")||{};
     setResults(savedRes);
@@ -1111,26 +1098,18 @@ function App(){
   }
 
   async function fetchMatches(){
-    // Load existing saved data first (may contain manually entered results)
-    const existing=await db.get("nf_matches")||[];
-    // Merge: always keep manually entered results (FINISHED status)
-    const merge=(base)=>base.map(m=>{
-      const saved=existing.find(s=>s.id===m.id);
-      return(saved&&saved.status==="FINISHED")?saved:m;
-    });
-    try{
-      const r=await fetch(`${WC_API}/matches`,{headers:{"X-Auth-Token":API_KEY}});
-      if(!r.ok)throw new Error();
-      const d=await r.json();const ms=d.matches||[];
-      if(ms.length>0){
-        const merged=merge(ms);
-        setMatches(merged);await db.set("nf_matches",merged);await db.set("nf_match_t",Date.now());return;
-      }
-    }catch{}
-    // Use hardcoded schedule merged with any saved results
+    // Always build from hardcoded schedule (never lose new phases)
     const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches(),...getRound16Matches()];
-    const merged=merge(fullSchedule);
-    setMatches(merged);await db.set("nf_matches",merged);await db.set("nf_match_t",Date.now());
+    // Apply any manually saved results from nf_results (admin entered scores)
+    const savedRes=await db.get("nf_results")||{};
+    const merged=fullSchedule.map(m=>{
+      const r=savedRes[m.id];
+      if(!r)return m;
+      return{...m,status:"FINISHED",score:{fullTime:{home:r.home,away:r.away},winner:r.winner,duration:r.duration||"REGULAR",regularTime:{home:r.home,away:r.away}}};
+    });
+    setMatches(merged);
+    await db.set("nf_matches",merged);
+    await db.set("nf_match_t",Date.now());
   }
 
   async function selectLeague(lg){
