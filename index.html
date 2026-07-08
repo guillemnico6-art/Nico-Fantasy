@@ -84,7 +84,7 @@ function FlagImg({name,size=48,style={}}){
   return <img src={`https://flagcdn.com/${size}x${h}/${code}.png`} alt={name} style={{width:size,height:h,borderRadius:3,objectFit:"cover",...style}} onError={e=>{e.target.style.display='none';e.target.nextSibling&&(e.target.nextSibling.style.display='inline');}}/>;
 }
 
-const STAGE_SHORT={GROUP_STAGE:"Grupos",ROUND_OF_32:"1/16",ROUND_OF_16:"Octavos",QUARTER_FINALS:"Cuartos",SEMI_FINALS:"Semis",THIRD_PLACE:"3er Puesto",FINAL:"Final 🏆"};
+const STAGE_SHORT={GROUP_STAGE:"Grupos",ROUND_OF_32:"1/16",ROUND_OF_16:"1/8",QUARTER_FINALS:"1/4",SEMI_FINALS:"Semis",THIRD_PLACE:"3er Puesto",FINAL:"Final 🏆"};
 const STAGE_FULL={GROUP_STAGE:"Fase de Grupos",ROUND_OF_32:"Dieciseisavos de Final",ROUND_OF_16:"Octavos de Final",QUARTER_FINALS:"Cuartos de Final",SEMI_FINALS:"Semifinales",THIRD_PLACE:"3er y 4º Puesto",FINAL:"Gran Final 🏆"};
 const STAGE_ORDER=["GROUP_STAGE","ROUND_OF_32","ROUND_OF_16","QUARTER_FINALS","SEMI_FINALS","THIRD_PLACE","FINAL"];
 const LEAGUE_EMOJIS=["⚽","🏆","🔥","⚡","🌟","🎯","🏅","🎪","🏟️","🎊","🥇","💥","🦁","🦅","🐉","🚀"];
@@ -228,6 +228,15 @@ function getRound16Matches(){
     R(94,"2026-07-07T00:00:00Z","United States","EE.UU.","Belgium","Bélgica"),
     R(95,"2026-07-07T16:00:00Z","Argentina","Argentina","Egypt","Egipto"),
     R(96,"2026-07-07T20:00:00Z","Switzerland","Suiza","Colombia","Colombia"),
+  ];
+}
+function getQuarterFinalMatches(){
+  const Q=(id,date,home,hS,away,aS)=>({id,stage:"QUARTER_FINALS",utcDate:date,status:"TIMED",homeTeam:{name:home,shortName:hS},awayTeam:{name:away,shortName:aS},score:{fullTime:{home:null,away:null},winner:null,duration:null}});
+  return[
+    Q(97,"2026-07-09T20:00:00Z","France","Francia","Morocco","Marruecos"),
+    Q(98,"2026-07-10T19:00:00Z","Spain","España","Belgium","Bélgica"),
+    Q(99,"2026-07-10T21:00:00Z","Norway","Noruega","England","Inglaterra"),
+    Q(100,"2026-07-12T01:00:00Z","Argentina","Argentina","Switzerland","Suiza"),
   ];
 }
 
@@ -1099,7 +1108,7 @@ function App(){
 
   async function fetchMatches(){
     // Always build from hardcoded schedule (never lose new phases)
-    const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches(),...getRound16Matches()];
+    const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches(),...getRound16Matches(),...getQuarterFinalMatches()];
     // Apply any manually saved results from nf_results (admin entered scores)
     const savedRes=await db.get("nf_results")||{};
     const merged=fullSchedule.map(m=>{
