@@ -240,6 +240,16 @@ function getQuarterFinalMatches(){
   ];
 }
 
+function getSemiFinalMatches(){
+  const S=(id,stage,date,home,hS,away,aS)=>({id,stage,utcDate:date,status:"TIMED",homeTeam:{name:home,shortName:hS},awayTeam:{name:away,shortName:aS},score:{fullTime:{home:null,away:null},winner:null,duration:null}});
+  return[
+    S(101,"SEMI_FINALS","2026-07-14T19:00:00Z","France","Francia","Spain","España"),
+    S(102,"SEMI_FINALS","2026-07-15T19:00:00Z","England","Inglaterra","Argentina","Argentina"),
+    S(103,"THIRD_PLACE","2026-07-18T21:00:00Z","TBD","3er puesto","TBD","4º puesto"),
+    S(104,"FINAL","2026-07-19T19:00:00Z","TBD","Final","TBD","Final"),
+  ];
+}
+
 // ── DESIGN ────────────────────────────────────────────────────────────────
 const RED="linear-gradient(135deg,#C41E3A,#E8400C)";
 const NAVY="linear-gradient(135deg,#0A1628,#1a3a5c)";
@@ -1108,7 +1118,7 @@ function App(){
 
   async function fetchMatches(){
     // Always build from hardcoded schedule (never lose new phases)
-    const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches(),...getRound16Matches(),...getQuarterFinalMatches()];
+    const fullSchedule=[...getHardcodedMatches(),...getKnockoutMatches(),...getRound16Matches(),...getQuarterFinalMatches(),...getSemiFinalMatches()];
     // Apply any manually saved results from nf_results (admin entered scores)
     const savedRes=await db.get("nf_results")||{};
     const merged=fullSchedule.map(m=>{
