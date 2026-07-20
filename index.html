@@ -245,8 +245,8 @@ function getSemiFinalMatches(){
   return[
     S(101,"SEMI_FINALS","2026-07-14T19:00:00Z","France","Francia","Spain","España"),
     S(102,"SEMI_FINALS","2026-07-15T19:00:00Z","England","Inglaterra","Argentina","Argentina"),
-    S(103,"THIRD_PLACE","2026-07-18T21:00:00Z","TBD","3er puesto","TBD","4º puesto"),
-    S(104,"FINAL","2026-07-19T19:00:00Z","TBD","Final","TBD","Final"),
+    S(103,"THIRD_PLACE","2026-07-18T21:00:00Z","France","Francia","England","Inglaterra"),
+    S(104,"FINAL","2026-07-19T19:00:00Z","Spain","España","Argentina","Argentina"),
   ];
 }
 
@@ -737,73 +737,141 @@ function LeaderboardTab({user,users,preds,matches,league}){
       </div>
       <div style={{marginTop:"0.75rem",background:"#EFF6FF",borderRadius:12,padding:"0.7rem 1rem",fontSize:"0.72rem",color:"#1E40AF",fontWeight:700,lineHeight:1.6}}>📊 Grupos: ganador=3pts · exacto=5pts | Eliminatorias: 90'=3-5pts · prórroga=2pts · penaltis=1pt | Campeón=15pts</div>
       <button onClick={async()=>{
+        const W=800;
+        const podiumH=320,headerH=140,rowH=72,footerH=60;
+        const H=headerH+podiumH+rowH*Math.max(0,ranked.length-3)+footerH+40;
         const canvas=document.createElement("canvas");
-        const W=720,headerH=190,rowH=84,padBottom=50;
-        const H=headerH+ranked.length*rowH+padBottom;
         canvas.width=W;canvas.height=H;
         const ctx=canvas.getContext("2d");
 
-        // Background
-        const bgGrad=ctx.createLinearGradient(0,0,W,H);
-        bgGrad.addColorStop(0,"#0A1628");bgGrad.addColorStop(1,"#1a3a5c");
-        ctx.fillStyle=bgGrad;ctx.fillRect(0,0,W,H);
+        // Background gradient
+        const bg=ctx.createLinearGradient(0,0,W,H);
+        bg.addColorStop(0,"#0A1628");bg.addColorStop(0.5,"#1a3a5c");bg.addColorStop(1,"#0A1628");
+        ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
 
-        // Header
+        // Stars background
+        ctx.fillStyle="rgba(255,255,255,0.03)";
+        for(let i=0;i<60;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,1,0,Math.PI*2);ctx.fill();}
+
+        // === HEADER ===
         ctx.textAlign="center";
-        ctx.font="900 30px Arial";ctx.fillStyle="#FFD700";
-        ctx.fillText("🏆 NICO FANTASY",W/2,55);
-        ctx.font="700 20px Arial";ctx.fillStyle="rgba(255,255,255,0.85)";
-        ctx.fillText(`${league.emoji} ${league.name}`,W/2,90);
-        ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=2;
-        ctx.beginPath();ctx.moveTo(40,headerH-25);ctx.lineTo(W-40,headerH-25);ctx.stroke();
+        // Trophy emoji
+        ctx.font="52px Arial";ctx.fillText("🏆",W/2,58);
+        ctx.font="bold 32px Arial";ctx.fillStyle="#FFD700";
+        ctx.fillText("NICO FANTASY",W/2,95);
+        ctx.font="18px Arial";ctx.fillStyle="rgba(255,255,255,0.7)";
+        ctx.fillText(`${league.emoji}  ${league.name}`,W/2,122);
+        // Header line
+        const lineGrad=ctx.createLinearGradient(40,0,W-40,0);
+        lineGrad.addColorStop(0,"transparent");lineGrad.addColorStop(0.5,"rgba(255,215,0,0.5)");lineGrad.addColorStop(1,"transparent");
+        ctx.strokeStyle=lineGrad;ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(40,headerH);ctx.lineTo(W-40,headerH);ctx.stroke();
 
-        // Rows
-        const medals=["🥇","🥈","🥉"];
-        ranked.forEach((u,i)=>{
-          const y=headerH+i*rowH;
-          const isFirst=i===0;
-          // Row background
-          ctx.fillStyle=isFirst?"rgba(255,215,0,0.12)":(i%2?"rgba(255,255,255,0.03)":"transparent");
-          ctx.fillRect(20,y,W-40,rowH-8);
-          // Rank/medal
-          ctx.textAlign="left";ctx.font="700 30px Arial";
-          ctx.fillStyle=isFirst?"#FFD700":"rgba(255,255,255,0.6)";
-          ctx.fillText(medals[i]||`${i+1}°`,40,y+50);
-          // Avatar
-          ctx.font="32px Arial";
-          ctx.fillText(u.avatar||"🤖",110,y+52);
+        // === PODIUM ===
+        const top3=ranked.slice(0,3);
+        const podiumColors=["#FFD700","#C0C0C0","#CD7F32"];
+        const podiumHeights=[200,160,130];
+        const podiumW=180;
+        // Order: 2nd, 1st, 3rd
+        const podiumOrder=[1,0,2];
+        const podiumX=[80,W/2-podiumW/2,W-80-podiumW];
+        const podiumBaseY=headerH+podiumH-10;
+
+        podiumOrder.forEach((rank,pos)=>{
+          const u=top3[rank];if(!u)return;
+          const pts=ranked[rank].pts;
+          const x=podiumX[pos];
+          const pH=podiumHeights[rank];
+          const pY=podiumBaseY-pH;
+          const color=podiumColors[rank];
+
+          // Podium block
+          const podGrad=ctx.createLinearGradient(x,pY,x+podiumW,podiumBaseY);
+          podGrad.addColorStop(0,color+"55");podGrad.addColorStop(1,color+"22");
+          ctx.fillStyle=podGrad;
+          ctx.strokeStyle=color+"88";ctx.lineWidth=2;
+          ctx.beginPath();ctx.roundRect(x,pY,podiumW,pH,8);
+          ctx.fill();ctx.stroke();
+
+          // Rank number on podium
+          ctx.textAlign="center";ctx.font="bold 48px Arial";ctx.fillStyle=color;
+          ctx.fillText(rank+1,x+podiumW/2,podiumBaseY-12);
+
+          // Avatar above podium
+          ctx.font="44px Arial";
+          ctx.fillText(u.avatar||"🤖",x+podiumW/2,pY-48);
+
+          // Medal
+          ctx.font="28px Arial";
+          ctx.fillText(["🥇","🥈","🥉"][rank],x+podiumW/2,pY-10);
+
           // Name
-          ctx.font="700 24px Arial";ctx.fillStyle="white";
-          ctx.fillText(u.displayName||u.username,165,y+38);
-          // Sub info
-          ctx.font="400 15px Arial";ctx.fillStyle="rgba(255,255,255,0.5)";
-          ctx.fillText(`${u.correct} correctos · ${u.exact} exactos${u.champPick?" · 🏆 "+u.champPick:""}`,165,y+62);
+          ctx.font="bold 17px Arial";ctx.fillStyle="white";
+          const name=u.displayName||u.username;
+          ctx.fillText(name.length>12?name.slice(0,11)+"…":name,x+podiumW/2,pY-75);
+
           // Points
-          ctx.textAlign="right";ctx.font="900 34px Arial";
-          ctx.fillStyle=isFirst?"#FFD700":"white";
-          ctx.fillText(`${u.pts}`,W-50,y+50);
-          ctx.font="700 14px Arial";ctx.fillStyle="rgba(255,255,255,0.4)";
-          ctx.fillText("PTS",W-50,y+68);
+          ctx.font="bold 22px Arial";ctx.fillStyle=color;
+          ctx.fillText(`${pts} pts`,x+podiumW/2,pY-95);
         });
 
-        // Footer
-        ctx.textAlign="center";ctx.font="700 16px Arial";ctx.fillStyle="rgba(255,255,255,0.4)";
-        ctx.fillText("⚽ Mundial 2026 ⚽",W/2,H-20);
+        // === REST OF RANKING ===
+        let ry=headerH+podiumH+20;
+        // Separator
+        ctx.strokeStyle="rgba(255,255,255,0.1)";ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(40,ry-8);ctx.lineTo(W-40,ry-8);ctx.stroke();
+
+        ranked.slice(3).forEach((u,i)=>{
+          const idx=i+3;
+          const rowY=ry+i*rowH;
+          // Row bg
+          ctx.fillStyle=i%2===0?"rgba(255,255,255,0.04)":"transparent";
+          ctx.fillRect(30,rowY,W-60,rowH-4);
+
+          // Position
+          ctx.textAlign="left";ctx.font="bold 22px Arial";ctx.fillStyle="rgba(255,255,255,0.5)";
+          ctx.fillText(`${idx+1}°`,48,rowY+44);
+
+          // Avatar
+          ctx.font="28px Arial";ctx.fillText(u.avatar||"🤖",88,rowY+44);
+
+          // Name
+          ctx.font="bold 20px Arial";ctx.fillStyle="white";
+          ctx.fillText(u.displayName||u.username,130,rowY+32);
+
+          // Stats
+          ctx.font="14px Arial";ctx.fillStyle="rgba(255,255,255,0.4)";
+          ctx.fillText(`${u.correct} correctos · ${u.exact} exactos`,130,rowY+54);
+
+          // Champ pick
+          if(u.champPick){ctx.font="16px Arial";ctx.fillText(`🏆 ${u.champPick}`,440,rowY+32);}
+
+          // Points
+          ctx.textAlign="right";ctx.font="bold 28px Arial";ctx.fillStyle="white";
+          ctx.fillText(`${u.pts}`,W-50,rowY+38);
+          ctx.font="12px Arial";ctx.fillStyle="rgba(255,255,255,0.4)";
+          ctx.fillText("pts",W-50,rowY+56);
+        });
+
+        // === FOOTER ===
+        const fy=H-footerH+10;
+        ctx.strokeStyle="rgba(255,255,255,0.08)";ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(40,fy);ctx.lineTo(W-40,fy);ctx.stroke();
+        ctx.textAlign="center";ctx.font="16px Arial";ctx.fillStyle="rgba(255,255,255,0.35)";
+        ctx.fillText("⚽  Nico Fantasy · Mundial 2026  ⚽",W/2,fy+30);
 
         canvas.toBlob(async(blob)=>{
-          const file=new File([blob],"clasificacion.png",{type:"image/png"});
+          const file=new File([blob],"clasificacion-nico-fantasy.png",{type:"image/png"});
           if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-            try{
-              await navigator.share({files:[file],title:"Clasificación Nico Fantasy",text:`${league.emoji} ${league.name}`});
-            }catch(e){}
+            try{await navigator.share({files:[file],title:"Clasificación Nico Fantasy",text:`🏆 ${league.name}`});}
+            catch(e){console.log(e);}
           }else{
-            // Fallback: download image
             const url=URL.createObjectURL(blob);
             const a=document.createElement("a");
             a.href=url;a.download="clasificacion-nico-fantasy.png";
             document.body.appendChild(a);a.click();document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            alert("📸 Imagen descargada. Ábrela y compártela por WhatsApp.");
+            alert("📸 Imagen descargada. Compártela por WhatsApp.");
           }
         },"image/png");
       }} style={{...btn,width:"100%",marginTop:"0.75rem",background:"linear-gradient(135deg,#25D366,#1EA952)",color:"white",fontSize:"0.9rem",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
